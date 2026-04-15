@@ -7,7 +7,6 @@ function Sidebar({ activeTab, setActiveTab }) {
     <aside className="sidebar">
       <div className="sidebar-header">
         <h1><Sprout size={24} /> FarmPlan</h1>
-        <p className="sidebar-version">v0.3 student build</p>
       </div>
 
       <nav className="nav-links">
