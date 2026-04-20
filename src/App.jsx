@@ -8,6 +8,7 @@ import SoilLookupPanel from './components/SoilLookupPanel';
 import YieldChartPanel from './components/YieldChartPanel';
 import FarmCreationPanel from './components/FarmCreationPanel';
 import ThemeConfigurationPanel from './components/ThemeConfigurationPanel';
+import FieldCreationPanel from './components/FieldCreationPanel';
 
 const LIGHT_THEME_DEFAULTS = {
   mode: 'light',
@@ -140,6 +141,11 @@ function App() {
           title: 'Theme Playground',
           subtitle: 'Try your own colors and quickly switch dark and light mode.',
         };
+      case 'field-create':
+        return {
+          title: 'Field Setup',
+          subtitle: 'Draw field boundaries and assign crop & soil properties.',
+        };
       default:
         return {
           title: 'Dashboard',
@@ -184,6 +190,10 @@ function App() {
 
           {activeTab === 'farm-create' && (
             <FarmCreationPanel onCreateFarm={handleCreateFarm} farms={farms} />
+          )}
+
+          {activeTab === 'field-create' && (
+            <FieldCreationPanel farm={farms[0] ?? null} />
           )}
 
           {activeTab === 'configuration' && (

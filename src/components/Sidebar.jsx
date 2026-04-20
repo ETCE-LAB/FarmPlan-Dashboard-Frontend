@@ -1,14 +1,13 @@
-import { LayoutDashboard, Map as MapIcon, ClipboardList, Settings, Sprout } from 'lucide-react';
+import { LayoutDashboard, Map as MapIcon, Rows3, ClipboardList, Settings, Sprout } from 'lucide-react';
 import './Sidebar.css';
-
-// Left-side application navigation.
+ 
 function Sidebar({ activeTab, setActiveTab }) {
   return (
     <aside className="sidebar">
       <div className="sidebar-header">
         <h1><Sprout size={24} /> FarmPlan</h1>
       </div>
-
+ 
       <nav className="nav-links">
         <div
           className={`nav-item ${activeTab === 'overview' ? 'active' : ''}`}
@@ -22,18 +21,30 @@ function Sidebar({ activeTab, setActiveTab }) {
         >
           <MapIcon size={18} /> Field Mapping
         </div>
-        <div className={`nav-item ${activeTab === 'field-logs' ? 'active' : ''}`} onClick={() => setActiveTab('field-logs')}>
+        <div
+          className={`nav-item ${activeTab === 'field-create' ? 'active' : ''}`}
+          onClick={() => setActiveTab('field-create')}
+        >
+          <Rows3 size={18} /> Field Setup
+        </div>
+        <div
+          className={`nav-item ${activeTab === 'field-logs' ? 'active' : ''}`}
+          onClick={() => setActiveTab('field-logs')}
+        >
           <ClipboardList size={18} /> Field Logs
         </div>
       </nav>
-
+ 
       <div className="nav-bottom">
-        <div className={`nav-item ${activeTab === 'configuration' ? 'active' : ''}`} onClick={() => setActiveTab('configuration')}>
+        <div
+          className={`nav-item ${activeTab === 'configuration' ? 'active' : ''}`}
+          onClick={() => setActiveTab('configuration')}
+        >
           <Settings size={18} /> Theme & Settings
         </div>
       </div>
     </aside>
   );
 }
-
+ 
 export default Sidebar;
