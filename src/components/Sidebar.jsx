@@ -1,4 +1,4 @@
-import { LayoutDashboard, Map as MapIcon, ClipboardList, Settings, Sprout } from 'lucide-react';
+import { LayoutDashboard, Map as MapIcon, ClipboardList, Edit, Settings, Sprout } from 'lucide-react';
 import './Sidebar.css';
 
 // Left-side application navigation.
@@ -24,6 +24,9 @@ function Sidebar({ activeTab, setActiveTab }) {
         </div>
         <div className={`nav-item ${activeTab === 'field-logs' ? 'active' : ''}`} onClick={() => setActiveTab('field-logs')}>
           <ClipboardList size={18} /> Field Logs
+        </div>
+        <div className={`nav-item ${activeTab === 'farm-edit' ? 'active' : ''}`} onClick={() => setActiveTab('farm-edit')}>  //temporrary Tab to flessh out the far eddit file
+          <Edit size={18} /> Farm Edit
         </div>
       </nav>
 
