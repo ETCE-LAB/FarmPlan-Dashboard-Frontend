@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { MapPin, LoaderCircle, AlertCircle } from 'lucide-react';
+import { useTranslation } from 'react-i18next'; // 1. Import
 import { SOIL_SERVICES } from '../data/dashboardData';
 import { transformCoordinates, getPrimaryResultValue, getAttributePreview } from '../utils/soilUtils';
 import './SoilLookupPanel.css';
 
-// Full soil lookup workflow: user input -> coordinate transform -> ArcGIS identify call.
 function SoilLookupPanel() {
+  const { t } = useTranslation(); // 2. Initialize
   const [lat, setLat] = useState('50.0');
   const [lon, setLon] = useState('10.0');
   const [serviceKey, setServiceKey] = useState('bodenpotenziale');
@@ -18,12 +19,11 @@ function SoilLookupPanel() {
   const soilResults = soilData?.results || [];
 
   const lookupSoilData = async () => {
-    // 1) Validate user input.
     const latNum = Number(lat);
     const lonNum = Number(lon);
 
     if (Number.isNaN(latNum) || Number.isNaN(lonNum)) {
-      setSoilError('Please enter valid numeric latitude and longitude values.');
+      setSoilError(t('soil.errors.invalid_coords', 'Please enter valid numeric coordinates.'));
       setSoilData(null);
       return;
     }
@@ -32,7 +32,6 @@ function SoilLookupPanel() {
     setSoilError('');
 
     try {
-      // 2) Convert GPS coordinates to the projection expected by selected service.
       const [x, y] = transformCoordinates(latNum, lonNum, activeService.spatialRef);
       setTransformedPoint({ x, y, sr: activeService.spatialRef });
 
@@ -48,24 +47,22 @@ function SoilLookupPanel() {
         f: 'json',
       });
 
-      // 3) Query ArcGIS identify endpoint through the local Vite proxy.
       const response = await fetch(`/api/bgr/arcgis/rest/services/${activeService.path}/MapServer/identify?${params.toString()}`);
 
       if (!response.ok) {
-        throw new Error(`Request failed with status ${response.status}`);
+        throw new Error(t('soil.errors.http_fail', { status: response.status }));
       }
 
       const payload = await response.json();
 
       if (payload.error) {
-        throw new Error(payload.error.message || 'The BGR API returned an error.');
+        throw new Error(payload.error.message || t('soil.errors.api_error'));
       }
 
-      // 4) Persist raw response so UI can render counts + top layer details.
       setSoilData(payload);
     } catch (error) {
       setSoilData(null);
-      setSoilError(error.message || 'Unable to load soil data.');
+      setSoilError(error.message || t('soil.errors.generic'));
     } finally {
       setLoadingSoil(false);
     }
@@ -73,32 +70,36 @@ function SoilLookupPanel() {
 
   return (
     <section className="panel">
-      <div className="panel-header">Soil API quick test</div>
+      <div className="panel-header">{t('soil.title', 'Soil API quick test')}</div>
       <div className="soil-form">
         <label>
-          Latitude
+          {t('soil.lat', 'Latitude')}
           <input value={lat} onChange={(e) => setLat(e.target.value)} type="text" placeholder="50.0" />
         </label>
         <label>
-          Longitude
+          {t('soil.lng', 'Longitude')}
           <input value={lon} onChange={(e) => setLon(e.target.value)} type="text" placeholder="10.0" />
         </label>
         <label className="soil-service-select">
-          Service
+          {t('soil.service_label', 'Service')}
           <select value={serviceKey} onChange={(e) => setServiceKey(e.target.value)}>
             {Object.entries(SOIL_SERVICES).map(([key, service]) => (
-              <option key={key} value={key}>{service.label} ({service.spatialRef})</option>
+              <option key={key} value={key}>
+                {/* We try to translate the service label, or use the default */}
+                {t(`soil.services.${key}`, service.label)} ({service.spatialRef})
+              </option>
             ))}
           </select>
         </label>
         <button className="soil-lookup-btn" type="button" onClick={lookupSoilData} disabled={loadingSoil}>
-          {loadingSoil ? <LoaderCircle size={14} className="spin" /> : <MapPin size={14} />} Run lookup
+          {loadingSoil ? <LoaderCircle size={14} className="spin" /> : <MapPin size={14} />} 
+          {t('soil.button_run', 'Run lookup')}
         </button>
       </div>
 
       {transformedPoint && (
         <p className="soil-meta">
-          Transformed point: X {transformedPoint.x.toFixed(2)} / Y {transformedPoint.y.toFixed(2)} ({transformedPoint.sr})
+          {t('soil.transformed', 'Transformed point')}: X {transformedPoint.x.toFixed(2)} / Y {transformedPoint.y.toFixed(2)} ({transformedPoint.sr})
         </p>
       )}
 
@@ -110,11 +111,11 @@ function SoilLookupPanel() {
 
       {soilData && (
         <div className="soil-results-wrap">
-          <p className="soil-meta">API hits: {soilResults.length}</p>
+          <p className="soil-meta">{t('soil.hits', 'API hits')}: {soilResults.length}</p>
           <div className="soil-results-list">
             {soilResults.slice(0, 6).map((result) => (
               <article key={`${result.layerId}-${result.layerName}`} className="soil-result-item">
-                <h4>{result.layerName || `Layer ${result.layerId}`}</h4>
+                <h4>{result.layerName || `${t('soil.layer')} ${result.layerId}`}</h4>
                 <p className="soil-main-value">{getPrimaryResultValue(result)}</p>
                 <p className="soil-attr-preview">{getAttributePreview(result.attributes)}</p>
               </article>

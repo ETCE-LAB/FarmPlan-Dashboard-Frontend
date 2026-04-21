@@ -9,6 +9,7 @@ import YieldChartPanel from './components/YieldChartPanel';
 import FarmCreationPanel from './components/FarmCreationPanel';
 import ThemeConfigurationPanel from './components/ThemeConfigurationPanel';
 import FieldCreationPanel from './components/FieldCreationPanel';
+import { useTranslation } from 'react-i18next';
 
 const LIGHT_THEME_DEFAULTS = {
   mode: 'light',

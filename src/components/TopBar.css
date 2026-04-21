@@ -74,3 +74,55 @@
     min-width: 160px;
   }
 }
+
+.language-toggle-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.text-muted {
+  color: #64748b; /* Subtle gray for the globe icon */
+}
+
+.language-toggle-pill {
+  display: flex;
+  background-color: #f1f5f9; /* Light gray pill background */
+  border-radius: 20px;
+  padding: 4px;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.toggle-btn {
+  background: transparent;
+  border: none;
+  border-radius: 16px;
+  padding: 4px 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.toggle-btn:hover {
+  color: #0f172a;
+}
+
+.toggle-btn.active {
+  background-color: #ffffff;
+  color: #0f172a; /* Dark text for active state */
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1); /* Nice pop-out shadow */
+}
+
+/* Dark mode overrides (If your app uses a .dark class on the body/html) */
+:root[data-theme='dark'] .language-toggle-pill,
+.dark .language-toggle-pill {
+  background-color: #1e293b;
+}
+
+:root[data-theme='dark'] .toggle-btn.active,
+.dark .toggle-btn.active {
+  background-color: #334155;
+  color: #f8fafc;
+}

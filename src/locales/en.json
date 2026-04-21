@@ -1,0 +1,60 @@
+{
+  "translation": {
+    "app_title": "FarmPlan",
+    "topbar": {
+      "search": "Quick search: field id, crop, note...",
+      "role": "Farmer"
+    },
+    "tabs": {
+      "overview": "Overview",
+      "mapping": "Field Mapping",
+      "setup": "Field Setup",
+      "logs": "Field Logs",
+      "settings": "Theme & Settings"
+    },
+    "stats": {
+      "total_area": "Total Area",
+      "field_count": "Field Count"
+    },
+    "overview": {
+      "inventory": {
+        "title": "Field Table (manual check)",
+        "reload": "Reload demo",
+        "sector_id": "Sector ID",
+        "field_name": "Field Name",
+        "moisture": "Moisture",
+        "last_sync": "Last Sync"
+      }
+    },
+    "soil": {
+      "title": "Soil API quick test",
+      "lat": "Latitude",
+      "lng": "Longitude",
+      "service_label": "Service",
+      "button_run": "Run lookup",
+      "transformed": "Transformed point",
+      "hits": "API hits",
+      "layer": "Layer",
+      "services": {
+        "bodenpotenziale": "Soil Potentials",
+        "nutzbare_feldkapazitaet": "Usable Field Capacity"
+      },
+      "errors": {
+        "invalid_coords": "Please enter valid numeric latitude and longitude values.",
+        "http_fail": "Request failed with status {{status}}",
+        "api_error": "The BGR API returned an error.",
+        "generic": "Unable to load soil data."
+      }
+    },
+    "charts": {
+      "yield_title": "Yield Growth Index",
+      "week_label": "Week",
+      "value_label": "Index Value"
+    },
+    "crops": {
+      "wheat": "Wheat",
+      "corn": "Corn",
+      "barley": "Barley"
+    }
+  }
+}
