@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import L from 'leaflet';
 import { LayersControl, MapContainer, TileLayer, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -234,12 +234,13 @@ function FarmCreationPanel({ onCreateFarm, farms }) {
   const areaSquareMeters = useMemo(() => calculateAreaSquareMeters(polygon), [polygon]);
   const perimeterMeters = useMemo(() => calculatePerimeterMeters(polygon), [polygon]);
 
-  const handlePolygonChange = (nextPolygon) => {
+  const handlePolygonChange = useCallback((nextPolygon) => {                              //CallBack to prevent unnecessary re-renders of the map component when polygon changes, as the function reference remains stable across renders.
+    console.log('Updated polygon points:', nextPolygon, 'length:', nextPolygon.length);  // Debug log to verify polygon updates
     setPolygon(nextPolygon);
     if (nextPolygon.length > 0 && errors.polygon) {
       setErrors((previous) => ({ ...previous, polygon: undefined }));
     }
-  };
+  }, [errors.polygon]);
 
   const validate = () => {
     const nextErrors = {};

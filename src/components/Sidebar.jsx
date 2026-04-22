@@ -1,4 +1,4 @@
-import { LayoutDashboard, Map as MapIcon, Rows3, ClipboardList, Settings, Sprout } from 'lucide-react';
+import { LayoutDashboard, Map as MapIcon, ClipboardList, Edit, Settings, Sprout } from 'lucide-react';
 import './Sidebar.css';
 import { useTranslation } from 'react-i18next';
  
@@ -36,6 +36,10 @@ function Sidebar({ activeTab, setActiveTab }) {
           onClick={() => setActiveTab('field-logs')}
         >
           <ClipboardList size={18} /> {t('tabs.logs', 'Field Logs')}
+        </div>
+        {/* temporary Tab to flessh out the farm edit file */}
+        <div className={`nav-item ${activeTab === 'farm-edit' ? 'active' : ''}`} onClick={() => setActiveTab('farm-edit')}>  
+          <Edit size={18} /> Farm Edit
         </div>
       </nav>
 

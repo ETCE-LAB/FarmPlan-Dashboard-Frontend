@@ -7,6 +7,7 @@ import FieldInventoryPanel from './components/FieldInventoryPanel';
 import SoilLookupPanel from './components/SoilLookupPanel';
 import YieldChartPanel from './components/YieldChartPanel';
 import FarmCreationPanel from './components/FarmCreationPanel';
+import FarmEditPanel from './components/FarmEditPanel';
 import ThemeConfigurationPanel from './components/ThemeConfigurationPanel';
 import FieldCreationPanel from './components/FieldCreationPanel';
 import { useTranslation } from 'react-i18next';
@@ -110,6 +111,18 @@ function App() {
     setFarms((previous) => [newFarm, ...previous]);
   };
 
+  const handleUpdateFarm = (farmId, updatedData) => {
+    setFarms((previous) =>
+      previous.map((farm) =>
+        farm.id === farmId ? { ...farm, ...updatedData } : farm
+      )
+    );
+  };
+
+  const handleDeleteFarm = (farmId) => {
+    setFarms((previous) => previous.filter((farm) => farm.id !== farmId));
+  };
+
   const handleThemeModeChange = (nextMode) => {
     setTheme(getThemeDefaultsByMode(nextMode));
   };
@@ -131,6 +144,11 @@ function App() {
         return {
           title: 'Farm Setup',
           subtitle: 'Fill the basics and draw your farm border on the map.',
+        };
+      case 'farm-edit':
+        return {
+          title: 'Farm Edit',
+          subtitle: 'Edit or delete existing farms.',
         };
       case 'overview':
         return {
@@ -193,8 +211,12 @@ function App() {
             <FarmCreationPanel onCreateFarm={handleCreateFarm} farms={farms} />
           )}
 
-          {activeTab === 'field-create' && (
-            <FieldCreationPanel farm={farms[0] ?? null} />
+          {activeTab === 'farm-edit' && (
+            <FarmEditPanel
+              farms={farms}
+              onUpdateFarm={handleUpdateFarm}
+              onDeleteFarm={handleDeleteFarm}
+            />
           )}
 
           {activeTab === 'configuration' && (
@@ -206,7 +228,7 @@ function App() {
             />
           )}
 
-          {activeTab !== 'overview' && activeTab !== 'farm-create' && activeTab !== 'configuration' && (
+          {activeTab !== 'overview' && activeTab !== 'farm-create' && activeTab !== 'farm-edit' && activeTab !== 'configuration' && (
             <section className="panel">
               <div className="panel-header">This module is coming soon</div>
               <p>Use the Farm Setup tab to register a farm and draw its boundary polygon.</p>
