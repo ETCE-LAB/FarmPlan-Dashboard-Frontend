@@ -144,6 +144,38 @@
   flex: 1;
 }
 
+.primary-btn{
+  padding: 0.6rem 1.2rem;
+  background-color: var(--farm-green-main);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.primary-btn:hover {
+  background-color: #2c700fd0;
+}
+
+.secondary-btn {
+  padding: 0.6rem 1.2rem;
+  background-color: var(--panel-border);
+  color: var(--text-main);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.secondary-btn:hover {
+  background-color: #cececed0;
+}
+
 .danger-btn {
   padding: 0.6rem 1.2rem;
   background-color: #b52a2a;

@@ -25,7 +25,8 @@ function Sidebar({ activeTab, setActiveTab }) {
         <div className={`nav-item ${activeTab === 'field-logs' ? 'active' : ''}`} onClick={() => setActiveTab('field-logs')}>
           <ClipboardList size={18} /> Field Logs
         </div>
-        <div className={`nav-item ${activeTab === 'farm-edit' ? 'active' : ''}`} onClick={() => setActiveTab('farm-edit')}>  //temporrary Tab to flessh out the far eddit file
+        {/* temporary Tab to flessh out the farm edit file */}
+        <div className={`nav-item ${activeTab === 'farm-edit' ? 'active' : ''}`} onClick={() => setActiveTab('farm-edit')}>  
           <Edit size={18} /> Farm Edit
         </div>
       </nav>

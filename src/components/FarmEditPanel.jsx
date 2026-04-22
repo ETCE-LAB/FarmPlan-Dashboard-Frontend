@@ -65,6 +65,8 @@ function calculatePerimeterMeters(points) {
 function PolygonEditManager({ initialPolygon, onPolygonChange, resetToken, mapControlRef }) {
   const map = useMap();
   const polygonLayerRef = useRef(null);
+  const initialPolygonAddedRef = useRef(false);
+  const RecenterButtonAddedRef = useRef(false);
 
   // Expose centerOnPolygon function to parent
   useEffect(() => {
@@ -102,22 +104,58 @@ function PolygonEditManager({ initialPolygon, onPolygonChange, resetToken, mapCo
       fillOpacity: 0.2,
     });
 
-    // Draw initial polygon if it exists
-    if (initialPolygon && initialPolygon.length > 0) {
-      const latLngs = initialPolygon.map(({ lat, lng }) => [lat, lng]);
-      polygonLayerRef.current = L.polygon(latLngs, {
-        color: '#2e7d32',
-        weight: 3,
-        fillOpacity: 0.2,
-      }).addTo(map);
+    // Add recenter button
+    const RecenterButton = L.Control.extend({
+      options: { position: 'topleft' },
 
-      // Center on polygon when loaded
-      setTimeout(() => {
-        if (polygonLayerRef.current) {
-          const bounds = polygonLayerRef.current.getBounds();
-          map.fitBounds(bounds, { padding: [50, 50] });
-        }
-      }, 100);
+      onAdd: function(map) {
+        const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
+        container.innerHTML = '<a href="#" title="Recenter on Polygon" style="font-size: 18px; text-decoration: none;">📍​</a>';
+        
+        L.DomEvent.on(container, 'click', function(e) {
+          L.DomEvent.preventDefault(e);
+          if (polygonLayerRef.current) {
+            const bounds = polygonLayerRef.current.getBounds();
+            map.fitBounds(bounds, { padding: [50, 50] });
+          }
+        });
+
+        return container;
+      }
+    });
+    
+   if (!RecenterButtonAddedRef.current) {
+      RecenterButtonAddedRef.current = true;
+      map.addControl(new RecenterButton());
+    }    
+
+    // Draw initial polygon if it exists
+    if (initialPolygon && initialPolygon.length > 0 && !initialPolygonAddedRef.current) {
+      initialPolygonAddedRef.current = true;
+      
+      const addPolygon = () => {
+        const latLngs = initialPolygon.map(({ lat, lng }) => [lat, lng]);
+        polygonLayerRef.current = L.polygon(latLngs, {
+          color: '#2e7d32',
+          weight: 3,
+          fillOpacity: 0.2,
+        }).addTo(map);
+
+        // Center on polygon when loaded
+        setTimeout(() => {
+          if (polygonLayerRef.current) {
+            const bounds = polygonLayerRef.current.getBounds();
+            map.fitBounds(bounds, { padding: [50, 50] });
+          }
+        }, 300);
+      };
+
+      // Wait for map to fully load before adding polygon
+      if (map.isLoading?.()) {
+        map.once('load', addPolygon);
+      } else {
+        setTimeout(addPolygon, 500);
+      }
     }
 
     const syncPolygon = (layer) => {
@@ -171,7 +209,7 @@ function PolygonEditManager({ initialPolygon, onPolygonChange, resetToken, mapCo
       map.off('pm:remove', onRemove);
       map.pm.removeControls();
     };
-  }, [map, onPolygonChange]);
+  }, [map, onPolygonChange, initialPolygon]);
 
   useEffect(() => {
     if (!polygonLayerRef.current) {
@@ -180,6 +218,7 @@ function PolygonEditManager({ initialPolygon, onPolygonChange, resetToken, mapCo
 
     map.removeLayer(polygonLayerRef.current);
     polygonLayerRef.current = null;
+    initialPolygonAddedRef.current = false;
   }, [map, resetToken]);
 
   return null;
@@ -310,13 +349,6 @@ function FarmEditPanel({ farms, onUpdateFarm, onDeleteFarm }) {
                   <div className="map-section">
                     <div className="map-header">
                       <p className="map-help-text">Edit the polygon below to update your farm border</p>
-                      <button
-                        type="button"
-                        className="secondary-btn"
-                        onClick={() => mapControlRef.current?.centerOnPolygon()}
-                      >
-                        📍 Center
-                      </button>
                     </div>
                     <MapContainer
                       className="edit-farm-map"
@@ -365,7 +397,7 @@ function FarmEditPanel({ farms, onUpdateFarm, onDeleteFarm }) {
               // View mode
               <div className="farm-view">
                 <div className="farm-info">
-                  <h4>{farm.farmName}</h4>
+                  <h3>{farm.farmName}</h3>
                   <p>
                     <strong>Owner:</strong> {farm.ownerName}
                   </p>
