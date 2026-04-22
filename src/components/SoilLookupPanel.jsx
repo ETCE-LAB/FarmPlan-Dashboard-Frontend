@@ -1,14 +1,16 @@
-import { useState } from 'react';
-import { MapPin, LoaderCircle, AlertCircle } from 'lucide-react';
-import { useTranslation } from 'react-i18next'; // 1. Import
+import { useState, useEffect } from 'react';
+import { MapPin, LoaderCircle, AlertCircle, Sprout } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { SOIL_SERVICES } from '../data/dashboardData';
 import { transformCoordinates, getPrimaryResultValue, getAttributePreview } from '../utils/soilUtils';
 import './SoilLookupPanel.css';
 
-function SoilLookupPanel() {
-  const { t } = useTranslation(); // 2. Initialize
-  const [lat, setLat] = useState('50.0');
-  const [lon, setLon] = useState('10.0');
+// 1. Accept your real Firebase farms as a prop
+function SoilLookupPanel({ farms = [] }) {
+  const { t } = useTranslation();
+  
+  // 2. State for selecting a farm instead of manual coordinates
+  const [selectedFarmId, setSelectedFarmId] = useState('');
   const [serviceKey, setServiceKey] = useState('bodenpotenziale');
   const [loadingSoil, setLoadingSoil] = useState(false);
   const [soilError, setSoilError] = useState('');
@@ -18,12 +20,31 @@ function SoilLookupPanel() {
   const activeService = SOIL_SERVICES[serviceKey];
   const soilResults = soilData?.results || [];
 
+  // Automatically select the first farm if none is selected yet
+  useEffect(() => {
+    if (farms.length > 0 && !selectedFarmId) {
+      setSelectedFarmId(farms[0].id);
+    }
+  }, [farms, selectedFarmId]);
+
   const lookupSoilData = async () => {
-    const latNum = Number(lat);
-    const lonNum = Number(lon);
+    // 3. Find the exact farm the user selected from Firebase
+    const selectedFarm = farms.find((f) => f.id === selectedFarmId);
+    
+    if (!selectedFarm || !selectedFarm.borderPolygon || selectedFarm.borderPolygon.length === 0) {
+      setSoilError(t('soil.errors.no_polygon', 'No map data found for this farm.'));
+      return;
+    }
+
+    // Grab the first coordinate point of the farm's polygon border
+    const firstPoint = selectedFarm.borderPolygon[0];
+    
+    // Safely extract Lat/Lng whether it was saved as an array [lat, lng] or object {lat, lng}
+    const latNum = Number(firstPoint.lat !== undefined ? firstPoint.lat : firstPoint[0]);
+    const lonNum = Number(firstPoint.lng !== undefined ? firstPoint.lng : firstPoint[1]);
 
     if (Number.isNaN(latNum) || Number.isNaN(lonNum)) {
-      setSoilError(t('soil.errors.invalid_coords', 'Please enter valid numeric coordinates.'));
+      setSoilError(t('soil.errors.invalid_coords', 'Invalid farm coordinates in database.'));
       setSoilData(null);
       return;
     }
@@ -31,6 +52,7 @@ function SoilLookupPanel() {
     setLoadingSoil(true);
     setSoilError('');
 
+    // 4. Run your friend's exact API fetch logic using your real farm coordinates
     try {
       const [x, y] = transformCoordinates(latNum, lonNum, activeService.spatialRef);
       setTransformedPoint({ x, y, sr: activeService.spatialRef });
@@ -70,38 +92,47 @@ function SoilLookupPanel() {
 
   return (
     <section className="panel">
-      <div className="panel-header">{t('soil.title', 'Soil API quick test')}</div>
+      <div className="panel-header" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+      
+        {t('soil.title', 'Farm Soil Quality Analysis')}
+      </div>
+      
       <div className="soil-form">
+        {/* Changed the manual Lat/Lng inputs to a dropdown of your real farms */}
         <label>
-          {t('soil.lat', 'Latitude')}
-          <input value={lat} onChange={(e) => setLat(e.target.value)} type="text" placeholder="50.0" />
+          {t('soil.farm_label', 'Select Farm')}
+          <select value={selectedFarmId} onChange={(e) => {
+            setSelectedFarmId(e.target.value);
+            setSoilData(null); // Clear old results when picking a new farm
+          }}>
+            {farms.length === 0 ? (
+              <option value="">{t('soil.no_farms', 'No farms saved yet')}</option>
+            ) : (
+              farms.map((farm) => (
+                <option key={farm.id} value={farm.id}>
+                  {farm.farmName} ({farm.areaHectares} ha)
+                </option>
+              ))
+            )}
+          </select>
         </label>
-        <label>
-          {t('soil.lng', 'Longitude')}
-          <input value={lon} onChange={(e) => setLon(e.target.value)} type="text" placeholder="10.0" />
-        </label>
+
         <label className="soil-service-select">
-          {t('soil.service_label', 'Service')}
+          {t('soil.service_label', 'Analysis Type')}
           <select value={serviceKey} onChange={(e) => setServiceKey(e.target.value)}>
             {Object.entries(SOIL_SERVICES).map(([key, service]) => (
               <option key={key} value={key}>
-                {/* We try to translate the service label, or use the default */}
-                {t(`soil.services.${key}`, service.label)} ({service.spatialRef})
+                {t(`soil.services.${key}`, service.label)}
               </option>
             ))}
           </select>
         </label>
-        <button className="soil-lookup-btn" type="button" onClick={lookupSoilData} disabled={loadingSoil}>
+
+        <button className="soil-lookup-btn" type="button" onClick={lookupSoilData} disabled={loadingSoil || farms.length === 0}>
           {loadingSoil ? <LoaderCircle size={14} className="spin" /> : <MapPin size={14} />} 
-          {t('soil.button_run', 'Run lookup')}
+          {t('soil.button_run', 'Analyze Soil')}
         </button>
       </div>
-
-      {transformedPoint && (
-        <p className="soil-meta">
-          {t('soil.transformed', 'Transformed point')}: X {transformedPoint.x.toFixed(2)} / Y {transformedPoint.y.toFixed(2)} ({transformedPoint.sr})
-        </p>
-      )}
 
       {soilError && (
         <div className="soil-error">
@@ -111,7 +142,7 @@ function SoilLookupPanel() {
 
       {soilData && (
         <div className="soil-results-wrap">
-          <p className="soil-meta">{t('soil.hits', 'API hits')}: {soilResults.length}</p>
+          <p className="soil-meta">{t('soil.hits', 'Data Layers Found')}: {soilResults.length}</p>
           <div className="soil-results-list">
             {soilResults.slice(0, 6).map((result) => (
               <article key={`${result.layerId}-${result.layerName}`} className="soil-result-item">

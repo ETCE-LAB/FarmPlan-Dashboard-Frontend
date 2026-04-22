@@ -1,47 +1,69 @@
-import { RefreshCw, Droplets } from 'lucide-react';
-import { useTranslation } from 'react-i18next'; // 1. Import hook
-import { FIELD_LOGS } from '../data/dashboardData';
+import { MapPin, CheckCircle2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next'; 
 import './FieldInventoryPanel.css';
 
-function FieldInventoryPanel() {
-  const { t } = useTranslation(); // 2. Initialize translation
+// 1. Accept the live Firebase data as a prop
+function FieldInventoryPanel({ farms = [] }) {
+  const { t } = useTranslation(); 
 
   return (
     <section className="panel">
       <div className="panel-header">
-        {/* 3. Wrap all strings in t() */}
-        <span>{t('overview.inventory.title', 'Field Table (manual check)')}</span>
-        <button className="refresh-btn" type="button">
-          <RefreshCw size={10} /> {t('overview.inventory.reload', 'Reload demo')}
-        </button>
+        <span>{t('overview.inventory.title', 'Farm Inventory')}</span>
+        
+        {/* Replaced the fake "Reload" button with a Live Status indicator */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', color: 'var(--farm-green-main)' }}>
+          <CheckCircle2 size={14} />
+          {t('overview.inventory.live', 'Live Sync')}
+        </div>
       </div>
+      
       <table>
         <thead>
           <tr>
-            <th>{t('overview.inventory.sector_id', 'Sektor ID')}</th>
-            <th>{t('overview.inventory.field_name', 'Field Name')}</th>
-            <th>{t('overview.inventory.moisture', 'Moisture')}</th>
-            <th>{t('overview.inventory.last_sync', 'Last Sync')}</th>
+            <th>{t('overview.inventory.sector_id', 'Farm ID')}</th>
+            <th>{t('overview.inventory.field_name', 'Farm Name')}</th>
+            {/* Swapped Moisture/Sync for the real data we have: Area and Location */}
+            <th>{t('overview.inventory.area', 'Area')}</th>
+            <th>{t('overview.inventory.location', 'Location')}</th>
           </tr>
         </thead>
         <tbody>
-          {FIELD_LOGS.map((log) => (
-            <tr key={log.id}>
-              <td className="field-id">{log.id}</td>
-              <td>
-                {log.name}
-                <br />
-                {/* Optional: Translate crop names if they are keys in your JSON */}
-                <small className="crop-name">{t(`crops.${log.crop.toLowerCase()}`, log.crop)}</small>
+          {farms.length === 0 ? (
+            <tr>
+              <td colSpan="4" style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-muted)' }}>
+                {t('overview.inventory.empty', 'No farms created yet. Draw one in the Setup tab.')}
               </td>
-              <td>
-                <div className="moisture-row">
-                  <Droplets size={12} color="#2196f3" /> {log.moisture}
-                </div>
-              </td>
-              <td className="last-update">{log.lastUpdate}</td>
             </tr>
-          ))}
+          ) : (
+            farms.map((farm) => (
+              <tr key={farm.id}>
+                {/* Firebase IDs are long strings, so we slice the first 5 characters for a clean Sector ID */}
+                <td className="field-id">#{farm.id.substring(0, 5).toUpperCase()}</td>
+                
+                <td>
+                  {farm.farmName}
+                  <br />
+                  {/* Reusing your friend's crop-name class to display the Owner Name cleanly */}
+                  <small className="crop-name">{farm.ownerName}</small>
+                </td>
+                
+                <td>
+                  {/* Reusing the moisture-row class so it aligns nicely */}
+                  <div className="moisture-row" style={{ fontWeight: '500' }}>
+                    {Number(farm.areaHectares || 0).toFixed(2)} ha
+                  </div>
+                </td>
+                
+                <td className="last-update">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <MapPin size={12} style={{ color: 'var(--text-muted)' }} /> 
+                    {farm.location || t('overview.inventory.no_location', 'N/A')}
+                  </div>
+                </td>
+              </tr>
+            ))
+          )}
         </tbody>
       </table>
     </section>

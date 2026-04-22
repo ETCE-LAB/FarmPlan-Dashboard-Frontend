@@ -2,54 +2,48 @@
   "translation": {
     "app_title": "FarmPlan",
     "topbar": {
-      "search": "Schnellsuche: Feld-ID, Kultur, Notiz...",
+      "search": "Schnellsuche...",
       "role": "Landwirt"
     },
     "tabs": {
       "overview": "Übersicht",
       "mapping": "Feldkartierung",
+      "farm_edit": "Betriebe bearbeiten",
       "setup": "Feldeinrichtung",
       "logs": "Feldprotokolle",
       "settings": "Design & Einstellungen"
     },
     "stats": {
       "total_area": "Gesamtfläche",
-      "field_count": "Anzahl Felder"
+      "field_count": "Anzahl Betriebe",
+      "avg_size": "Durchschn. Größe",
+      "largest_farm": "Größter Betrieb"
     },
     "overview": {
       "inventory": {
-        "title": "Feldtabelle (manuelle Prüfung)",
-        "reload": "Demo neu laden",
-        "sector_id": "Sektor-ID",
+        "title": "Feldtabelle",
+        "live": "Live-Sync",
+        "sector_id": "Feld-ID",
         "field_name": "Feldname",
-        "moisture": "Feuchtigkeit",
-        "last_sync": "Letzte Synchr."
+        "area": "Fläche",
+        "location": "Standort",
+        "empty": "Noch keine Felder erstellt.",
+        "no_location": "K.A."
+      },
+      "chart": {
+        "title": "Flächenvergleich der Felder (ha)",
+        "empty": "Noch keine Betriebsdaten verfügbar.",
+        "area": "Fläche"
       }
     },
     "soil": {
-      "title": "Boden-API Schnelltest",
-      "lat": "Breitengrad",
-      "lng": "Längengrad",
-      "service_label": "Dienst",
-      "button_run": "Abfrage starten",
-      "transformed": "Transformierter Punkt",
-      "hits": "API-Treffer",
-      "layer": "Ebene",
+      "title": "Bodenqualitäts-Analyse",
+      "farm_label": "Betrieb auswählen",
+      "button_run": "Boden analysieren",
       "services": {
         "bodenpotenziale": "Bodenpotenziale",
         "nutzbare_feldkapazitaet": "Nutzbare Feldkapazität"
-      },
-      "errors": {
-        "invalid_coords": "Bitte geben Sie gültige numerische Koordinaten ein.",
-        "http_fail": "Anfrage fehlgeschlagen mit Status {{status}}",
-        "api_error": "Die BGR-API hat einen Fehler gemeldet.",
-        "generic": "Bodendaten konnten nicht geladen werden."
       }
-    },
-    "charts": {
-      "yield_title": "Ertragswachstums-Index",
-      "week_label": "Woche",
-      "value_label": "Indexwert"
     },
     "crops": {
       "wheat": "Weizen",
