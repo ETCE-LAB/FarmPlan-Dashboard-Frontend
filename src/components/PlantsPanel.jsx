@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { RefreshCw } from 'lucide-react';
 import './FieldInventoryPanel.css';
 
-// Operational table for field status and moisture snapshots.
-function FieldInventoryPanel({
+// Treeline plants inventory with search, filter, and pagination.
+function PlantsPanel({
   rows = [],
   filters,
   options,
@@ -26,7 +26,7 @@ function FieldInventoryPanel({
   return (
     <section className="panel">
       <div className="panel-header">
-        <span>Treeline Inventory (MongoDB)</span>
+        <span>Treeline Plants Inventory (MongoDB)</span>
         <button className="refresh-btn" type="button" onClick={onReload} disabled={isLoading}>
           <RefreshCw size={10} /> {isLoading ? 'Loading...' : 'Reload CSV'}
         </button>
@@ -105,7 +105,7 @@ function FieldInventoryPanel({
           {rows.length === 0 && (
             <tr>
               <td colSpan={6} className="last-update">
-                No treeline rows available. Import CSV data first.
+                No plants found. Import CSV data first.
               </td>
             </tr>
           )}
@@ -143,4 +143,4 @@ function FieldInventoryPanel({
   );
 }
 
-export default FieldInventoryPanel;
+export default PlantsPanel;

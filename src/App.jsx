@@ -1,13 +1,14 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import './App.css';
 import Sidebar from './components/Sidebar';
 import TopBar from './components/TopBar';
 import StatsRow from './components/StatsRow';
-import FieldInventoryPanel from './components/FieldInventoryPanel';
 import SoilLookupPanel from './components/SoilLookupPanel';
 import YieldChartPanel from './components/YieldChartPanel';
 import FarmCreationPanel from './components/FarmCreationPanel';
 import ThemeConfigurationPanel from './components/ThemeConfigurationPanel';
+import PlantsPanel from './components/PlantsPanel';
+import { getTreelineOverview, getTreelineRecords, importTreelineCsv } from './utils/dashboardApi';
 
 const LIGHT_THEME_DEFAULTS = {
   mode: 'light',
@@ -101,8 +102,128 @@ function App() {
   const [activeTab, setActiveTab] = useState('overview');
   const [farms, setFarms] = useState([]);
   const [theme, setTheme] = useState(LIGHT_THEME_DEFAULTS);
+  const [overviewData, setOverviewData] = useState({
+    stats: [],
+    performance: [],
+    meta: null,
+  });
+  const [tableData, setTableData] = useState({
+    records: [],
+    options: {
+      categories: [],
+      strata: [],
+    },
+    pagination: {
+      page: 1,
+      limit: 10,
+      total: 0,
+      totalPages: 1,
+      hasPrev: false,
+      hasNext: false,
+    },
+  });
+  const [tableFilters, setTableFilters] = useState({
+    search: '',
+    category: 'all',
+    strata: 'all',
+    page: 1,
+    limit: 10,
+  });
+  const [isOverviewLoading, setIsOverviewLoading] = useState(false);
+  const [isTableLoading, setIsTableLoading] = useState(false);
+  const [overviewError, setOverviewError] = useState('');
+  const [tableError, setTableError] = useState('');
 
   const themeVariables = useMemo(() => buildThemeVariables(theme), [theme]);
+
+  const loadOverviewData = useCallback(async ({ forceImport = false } = {}) => {
+    setIsOverviewLoading(true);
+    setOverviewError('');
+
+    try {
+      if (forceImport) {
+        await importTreelineCsv();
+      }
+
+      const payload = await getTreelineOverview();
+      setOverviewData({
+        stats: payload.stats || [],
+        performance: payload.performance || [],
+        meta: payload.meta || null,
+      });
+    } catch (error) {
+      setOverviewError(error.message || 'Failed to load treeline data from Flask API.');
+    } finally {
+      setIsOverviewLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadOverviewData();
+  }, [loadOverviewData]);
+
+  const loadTableData = useCallback(async (filters) => {
+    setIsTableLoading(true);
+    setTableError('');
+
+    try {
+      const payload = await getTreelineRecords(filters);
+      setTableData({
+        records: payload.records || [],
+        options: payload.options || { categories: [], strata: [] },
+        pagination: payload.pagination || {
+          page: 1,
+          limit: 10,
+          total: 0,
+          totalPages: 1,
+          hasPrev: false,
+          hasNext: false,
+        },
+      });
+    } catch (error) {
+      setTableError(error.message || 'Failed to load table data from Flask API.');
+    } finally {
+      setIsTableLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadTableData(tableFilters);
+  }, [tableFilters, loadTableData]);
+
+  const handleTableSearch = (search) => {
+    setTableFilters((previous) => ({ ...previous, search, page: 1 }));
+  };
+
+  const handleCategoryFilterChange = (category) => {
+    setTableFilters((previous) => ({ ...previous, category, page: 1 }));
+  };
+
+  const handleStrataFilterChange = (strata) => {
+    setTableFilters((previous) => ({ ...previous, strata, page: 1 }));
+  };
+
+  const handleLimitChange = (limit) => {
+    setTableFilters((previous) => ({ ...previous, limit, page: 1 }));
+  };
+
+  const handlePageChange = (page) => {
+    setTableFilters((previous) => ({ ...previous, page }));
+  };
+
+  const handleReloadCsv = async () => {
+    setOverviewError('');
+    setTableError('');
+
+    try {
+      await importTreelineCsv();
+      await Promise.all([loadOverviewData(), loadTableData(tableFilters)]);
+    } catch (error) {
+      const message = error.message || 'Failed to import treeline CSV.';
+      setOverviewError(message);
+      setTableError(message);
+    }
+  };
 
   const handleCreateFarm = (newFarm) => {
     setFarms((previous) => [newFarm, ...previous]);
@@ -134,6 +255,11 @@ function App() {
         return {
           title: 'Project Overview',
           subtitle: 'Demo data mode: local + API tests',
+        };
+      case 'plants':
+        return {
+          title: 'Treeline Plants Inventory',
+          subtitle: 'Search, filter, and browse all plants from the CSV database.',
         };
       case 'configuration':
         return {
@@ -168,22 +294,48 @@ function App() {
 
           {activeTab === 'overview' && (
             <>
-              <StatsRow />
+              <StatsRow stats={overviewData.stats} isLoading={isOverviewLoading} />
+
+              {overviewError && (
+                <section className="panel">
+                  <div className="panel-header">Treeline API Error</div>
+                  <p>{overviewError}</p>
+                </section>
+              )}
+
+              {tableError && (
+                <section className="panel">
+                  <div className="panel-header">Treeline Table Error</div>
+                  <p>{tableError}</p>
+                </section>
+              )}
 
               <div className="content-grid">
-                {/* Left: operational table. Right: analytics + API tools. */}
-                <FieldInventoryPanel />
-
-                <div className="panel-column">
-                  <SoilLookupPanel />
-                  <YieldChartPanel />
-                </div>
+                {/* Left: soil lookup. Right: yield chart. */}
+                <SoilLookupPanel />
+                <YieldChartPanel data={overviewData.performance} />
               </div>
             </>
           )}
 
           {activeTab === 'farm-create' && (
             <FarmCreationPanel onCreateFarm={handleCreateFarm} farms={farms} />
+          )}
+
+          {activeTab === 'plants' && (
+            <PlantsPanel
+              rows={tableData.records}
+              filters={tableFilters}
+              options={tableData.options}
+              pagination={tableData.pagination}
+              onSearch={handleTableSearch}
+              onCategoryChange={handleCategoryFilterChange}
+              onStrataChange={handleStrataFilterChange}
+              onLimitChange={handleLimitChange}
+              onPageChange={handlePageChange}
+              onReload={handleReloadCsv}
+              isLoading={isOverviewLoading || isTableLoading}
+            />
           )}
 
           {activeTab === 'configuration' && (

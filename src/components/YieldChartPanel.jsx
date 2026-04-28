@@ -1,15 +1,14 @@
 import { ResponsiveContainer, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Bar } from 'recharts';
-import { PERFORMANCE_DATA } from '../data/dashboardData';
 import './YieldChartPanel.css';
 
 // Compact trend chart for weekly yield index values.
-function YieldChartPanel() {
+function YieldChartPanel({ data = [] }) {
   return (
     <section className="panel">
-      <div className="panel-header">Yield Growth Index</div>
+      <div className="panel-header">Top Expected Calories By Plant</div>
       <div className="yield-chart-wrap">
         <ResponsiveContainer>
-          <BarChart data={PERFORMANCE_DATA}>
+          <BarChart data={data}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--chart-grid)" />
             <XAxis dataKey="week" axisLine={false} tickLine={false} tick={{ fill: 'var(--text-muted)', fontSize: 11 }} />
             <YAxis axisLine={false} tickLine={false} tick={{ fill: 'var(--text-muted)', fontSize: 11 }} />

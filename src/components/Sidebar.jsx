@@ -25,6 +25,9 @@ function Sidebar({ activeTab, setActiveTab }) {
         <div className={`nav-item ${activeTab === 'field-logs' ? 'active' : ''}`} onClick={() => setActiveTab('field-logs')}>
           <ClipboardList size={18} /> Field Logs
         </div>
+        <div className={`nav-item ${activeTab === 'plants' ? 'active' : ''}`} onClick={() => setActiveTab('plants')}>
+          <Sprout size={18} /> Treeline Plants
+        </div>
       </nav>
 
       <div className="nav-bottom">
