@@ -40,6 +40,69 @@ npm install
 npm run dev
 ```
 
+## Flask + MongoDB Backend
+
+The dashboard overview can now load treeline data from MongoDB through a Flask API.
+
+### 1) Start MongoDB
+
+Run MongoDB locally (default URI: `mongodb://localhost:27017`).
+
+### 2) Start Flask API
+
+From `farmplan/backend`:
+
+```bash
+python -m venv .venv
+.venv\Scripts\activate
+pip install -r requirements.txt
+copy .env.example .env
+python app.py
+```
+
+API endpoints:
+
+- `GET /api/health`
+- `POST /api/treeline/import`
+- `GET /api/treeline/overview`
+- `GET /api/treeline/records?limit=50`
+
+On first overview request, Flask auto-imports `20260320_Neorx-treeline-planning.csv` if the collection is empty.
+
+### 3) Start React frontend
+
+From `farmplan`:
+
+```bash
+npm run dev
+```
+
+Vite proxies Flask calls from `/api/flask/*` to `http://localhost:5000`.
+
+### One-command startup (frontend + backend)
+
+From `farmplan`:
+
+```bash
+npm run dev:full
+```
+
+This runs Vite and Flask together in one command.
+
+## Treeline Table Query API
+
+The inventory table now supports MongoDB-backed search/filter/pagination via:
+
+- `GET /api/treeline/records?page=1&limit=10&search=walnut&category=Tree&strata=Emergent canopy`
+
+Query params:
+
+- `page` (default `1`)
+- `limit` (default `10`, max `100`)
+- `search` (matches ID/German/English/Latin names)
+- `category` (`all` or exact category)
+- `strata` (`all` or exact strata)
+
 Build commands:
 
 ```bash
@@ -83,11 +146,13 @@ Main state is in src/App.jsx:
 - activeTab
 - farms list (currently in-memory only)
 - theme object
+- tableFilters & tableData (for treeline inventory queries)
 
 Tab mapping:
 
-- Overview: stats/table/soil/chart
+- Overview: stats cards, soil lookup, yield chart
 - Field Mapping: farm creation + polygon drawing
+- Treeline Plants: searchable/filterable plant inventory with pagination
 - Theme and Settings: dark/light + colors
 
 ## Farm Mapping Notes

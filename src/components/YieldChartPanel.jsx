@@ -2,35 +2,47 @@ import { ResponsiveContainer, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Ba
 import { useTranslation } from 'react-i18next';
 import './YieldChartPanel.css';
 
-// 1. Add `farms` to the props so we can receive the live Firebase data
-function YieldChartPanel({ farms = [] }) {
+/**
+ * Compact trend chart. 
+ * It can show either live Firebase 'farms' data 
+ * OR the 'data' array from the Treeline API.
+ */
+function YieldChartPanel({ farms = [], data = [] }) {
   const { t } = useTranslation(); 
 
-  // 2. Transform your real data into the exact format Recharts needs
-  const chartData = farms.map((farm) => ({
-    name: farm.farmName || 'Unnamed Farm',
-    area: Number(farm.areaHectares) || 0
-  }));
+  // 1. Logic: If we have live farms, we use them. Otherwise, we fallback to the API data.
+  const isUsingFirebase = farms.length > 0;
+
+  const chartData = isUsingFirebase 
+    ? farms.map((farm) => ({
+        name: farm.farmName || 'Unnamed Farm',
+        value: Number(farm.areaHectares) || 0
+      }))
+    : data.map((item) => ({
+        name: item.week || item.name || '?',
+        value: item.value || 0
+      }));
 
   return (
     <section className="panel">
-      {/* 3. Update the header to reflect our real data */}
-      <div className="panel-header">{t('overview.chart.title', 'Farm Area Comparison (ha)')}</div>
+      <div className="panel-header">
+        {isUsingFirebase 
+          ? t('overview.chart.title', 'Farm Area Comparison (ha)') 
+          : 'Top Expected Calories By Plant'}
+      </div>
       
-      <div className="yield-chart-wrap" style={{ minHeight: '250px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        
-        {/* 4. Show a friendly message if the database is empty */}
+      <div className="yield-chart-wrap" style={{ minHeight: '250px', width: '100%' }}>
         {chartData.length === 0 ? (
-          <p style={{ color: 'var(--text-muted)' }}>
-            {t('overview.chart.empty', 'No farm data to chart yet.')}
-          </p>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '250px' }}>
+            <p style={{ color: 'var(--text-muted)' }}>
+              {t('overview.chart.empty', 'No data to chart yet.')}
+            </p>
+          </div>
         ) : (
           <ResponsiveContainer width="100%" height={250}>
-            {/* 5. Feed your real chartData into the BarChart */}
             <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--chart-grid)" />
               
-              {/* XAxis now shows the farm 'name' */}
               <XAxis 
                 dataKey="name" 
                 axisLine={false} 
@@ -48,13 +60,14 @@ function YieldChartPanel({ farms = [] }) {
                   borderRadius: '6px',
                   color: 'var(--text-main)',
                 }}
-                labelStyle={{ color: 'var(--text-main)', fontWeight: 'bold', marginBottom: '4px' }}
-                // Make the tooltip show the area with "ha"
-                formatter={(value) => [`${value.toFixed(2)} ha`, t('overview.chart.area', 'Area')]}
+                labelStyle={{ color: 'var(--text-main)', fontWeight: 'bold' }}
+                formatter={(val) => [
+                  isUsingFirebase ? `${val.toFixed(2)} ha` : val, 
+                  isUsingFirebase ? t('overview.chart.area', 'Area') : 'Value'
+                ]}
               />
               
-              {/* The bars are now mapped to the 'area' of the farm */}
-              <Bar dataKey="area" fill="var(--farm-green-main)" radius={[2, 2, 0, 0]} barSize={40} />
+              <Bar dataKey="value" fill="var(--farm-green-main)" radius={[2, 2, 0, 0]} barSize={35} />
             </BarChart>
           </ResponsiveContainer>
         )}

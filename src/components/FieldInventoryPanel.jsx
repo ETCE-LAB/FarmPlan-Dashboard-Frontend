@@ -1,29 +1,46 @@
-import { MapPin, CheckCircle2 } from 'lucide-react';
+import { useState } from 'react';
+import { MapPin, CheckCircle2, RefreshCw, Rows3 } from 'lucide-react';
 import { useTranslation } from 'react-i18next'; 
 import './FieldInventoryPanel.css';
 
-// 1. Accept the live Firebase data as a prop
-function FieldInventoryPanel({ farms = [] }) {
+function FieldInventoryPanel({
+  farms = [],       // From Firebase
+  rows = [],        // From Treeline/CSV
+  filters = { search: '', category: 'all', strata: 'all', limit: 10, page: 1 },
+  options = { categories: [], strata: [] },
+  pagination = { total: 0, page: 1, totalPages: 1 },
+  onSearch,
+  onCategoryChange,
+  onStrataChange,
+  onLimitChange,
+  onPageChange,
+  onReload,
+  isLoading = false,
+}) {
   const { t } = useTranslation(); 
+  const [searchInput, setSearchInput] = useState(filters.search || '');
+
+  const handleSearchSubmit = (event) => {
+    event.preventDefault();
+    if (onSearch) onSearch(searchInput.trim());
+  };
 
   return (
     <section className="panel">
+      {/* SECTION 1: LIVE FARM INVENTORY (FIREBASE) */}
       <div className="panel-header">
         <span>{t('overview.inventory.title', 'Farm Inventory')}</span>
-        
-        {/* Replaced the fake "Reload" button with a Live Status indicator */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', color: 'var(--farm-green-main)' }}>
           <CheckCircle2 size={14} />
           {t('overview.inventory.live', 'Live Sync')}
         </div>
       </div>
       
-      <table>
+      <table className="inventory-table">
         <thead>
           <tr>
             <th>{t('overview.inventory.sector_id', 'Farm ID')}</th>
             <th>{t('overview.inventory.field_name', 'Farm Name')}</th>
-            {/* Swapped Moisture/Sync for the real data we have: Area and Location */}
             <th>{t('overview.inventory.area', 'Area')}</th>
             <th>{t('overview.inventory.location', 'Location')}</th>
           </tr>
@@ -31,34 +48,24 @@ function FieldInventoryPanel({ farms = [] }) {
         <tbody>
           {farms.length === 0 ? (
             <tr>
-              <td colSpan="4" style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-muted)' }}>
-                {t('overview.inventory.empty', 'No farms created yet. Draw one in the Setup tab.')}
+              <td colSpan="4" style={{ textAlign: 'center', padding: '2rem 1rem', color: 'var(--text-muted)' }}>
+                {t('overview.inventory.empty', 'No farms created yet.')}
               </td>
             </tr>
           ) : (
             farms.map((farm) => (
               <tr key={farm.id}>
-                {/* Firebase IDs are long strings, so we slice the first 5 characters for a clean Sector ID */}
                 <td className="field-id">#{farm.id.substring(0, 5).toUpperCase()}</td>
-                
                 <td>
-                  {farm.farmName}
+                  <strong>{farm.farmName}</strong>
                   <br />
-                  {/* Reusing your friend's crop-name class to display the Owner Name cleanly */}
                   <small className="crop-name">{farm.ownerName}</small>
                 </td>
-                
-                <td>
-                  {/* Reusing the moisture-row class so it aligns nicely */}
-                  <div className="moisture-row" style={{ fontWeight: '500' }}>
-                    {Number(farm.areaHectares || 0).toFixed(2)} ha
-                  </div>
-                </td>
-                
+                <td>{Number(farm.areaHectares || 0).toFixed(2)} ha</td>
                 <td className="last-update">
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <MapPin size={12} style={{ color: 'var(--text-muted)' }} /> 
-                    {farm.location || t('overview.inventory.no_location', 'N/A')}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <MapPin size={12} /> 
+                    {farm.location || 'N/A'}
                   </div>
                 </td>
               </tr>
@@ -66,6 +73,71 @@ function FieldInventoryPanel({ farms = [] }) {
           )}
         </tbody>
       </table>
+
+      <hr className="panel-divider" style={{ margin: '20px 0', border: 'none', borderTop: '1px solid var(--panel-divider)' }} />
+
+      {/* SECTION 2: TREELINE PLANT SEARCH (CSV/DATABASE) */}
+      <div className="panel-header" style={{ paddingTop: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Rows3 size={16} />
+          <span>Treeline Inventory (CSV)</span>
+        </div>
+        <button className="refresh-btn" type="button" onClick={onReload} disabled={isLoading}>
+          <RefreshCw size={10} className={isLoading ? 'spin' : ''} /> 
+          {isLoading ? ' Loading...' : ' Reload CSV'}
+        </button>
+      </div>
+
+      <div className="table-toolbar">
+        <form className="search-wrap" onSubmit={handleSearchSubmit}>
+          <input
+            className="table-control"
+            type="search"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            placeholder="Search plants..."
+          />
+        </form>
+
+        <select className="table-control" value={filters.category} onChange={(e) => onCategoryChange(e.target.value)}>
+          <option value="all">All categories</option>
+          {options.categories.map((c) => <option key={c} value={c}>{c}</option>)}
+        </select>
+      </div>
+
+      <table className="inventory-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Plant</th>
+            <th>Category</th>
+            <th>Strata</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.length > 0 ? (
+            rows.map((log) => (
+              <tr key={log.id}>
+                <td className="field-id">{log.id}</td>
+                <td>{log.name}<br/><small className="crop-name">{log.crop}</small></td>
+                <td>{log.category}</td>
+                <td>{log.strata}</td>
+              </tr>
+            ))
+          ) : (
+            <tr><td colSpan={4} className="last-update">No plant data found.</td></tr>
+          )}
+        </tbody>
+      </table>
+      
+      {/* PAGINATION */}
+      <div className="pagination-row">
+        <div className="pagination-info">Page {pagination.page} of {pagination.totalPages}</div>
+        <div className="pagination-actions">
+          <button className="pagination-btn" onClick={() => onPageChange(pagination.page - 1)} disabled={pagination.page <= 1 || isLoading}>Prev</button>
+          <button className="pagination-btn" onClick={() => onPageChange(pagination.page + 1)} disabled={pagination.page >= pagination.totalPages || isLoading}>Next</button>
+        </div>
+      </div>
     </section>
   );
 }

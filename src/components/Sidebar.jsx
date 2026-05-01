@@ -41,6 +41,9 @@ function Sidebar({ activeTab, setActiveTab }) {
         <div className={`nav-item ${activeTab === 'farm-edit' ? 'active' : ''}`} onClick={() => setActiveTab('farm-edit')}>  
           <Edit size={18} /> {t('tabs.farm_edit', 'Farm Edit')}
         </div>
+        <div className={`nav-item ${activeTab === 'plants' ? 'active' : ''}`} onClick={() => setActiveTab('plants')}>
+          <Sprout size={18} /> Treeline Plants
+        </div>
       </nav>
 
       <div className="nav-bottom">
