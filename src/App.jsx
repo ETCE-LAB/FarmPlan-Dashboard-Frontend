@@ -104,11 +104,14 @@ function App() {
 
   // --- HANDLERS ---
   const handleCreateFarm = async (newFarm) => {
-    const { id, ...data } = newFarm;
-    await addDoc(collection(db, 'farms'), data);
-  };
+  const { id, ...data } = newFarm;
+  await addDoc(collection(db, 'farms'), { ...data, fields: [] });
+};
 
-  const handleUpdateFarm = async (id, data) => await updateDoc(doc(db, 'farms', id), data);
+  const handleUpdateFarm = async (updatedFarm) => {
+  const { id, ...data } = updatedFarm;
+  await updateDoc(doc(db, 'farms', id), data);
+};
   const handleDeleteFarm = async (id) => await deleteDoc(doc(db, 'farms', id));
 
   const getPageMeta = () => {
@@ -149,7 +152,13 @@ function App() {
             </div>
           )}
 
-          {activeTab === 'farm-create' && <FarmCreationPanel onCreateFarm={handleCreateFarm} farms={farms} />}
+          {activeTab === 'farm-create' && (
+  <FarmCreationPanel
+    onCreateFarm={handleCreateFarm}
+    farms={farms}
+    onUpdateFarm={handleUpdateFarm}
+  />
+)}
 
           {activeTab === 'farm-edit' && (
             <FarmEditPanel farms={farms} onUpdateFarm={handleUpdateFarm} onDeleteFarm={handleDeleteFarm} />
