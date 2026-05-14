@@ -302,13 +302,14 @@ function FieldPropertiesPanel({
           </div>
           {errors.cropType && <p className="fpp-error-msg">{errors.cropType}</p>}
         </div>
-        <div className="fpp-field-group">
-          <label className="fpp-label">Soil Type</label>
-          <select className="fpp-select" value={form.soilType} onChange={(e) => setForm(p => ({ ...p, soilType: e.target.value }))}>
-            <option value="">Select soil type…</option>
-            {SOIL_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
-          </select>
-        </div>
+        {existingField?.soilType && (
+  <div className="fpp-field-group">
+    <label className="fpp-label">Soil Type</label>
+    <div className="fpp-input" style={{background:'#f8fafc', color:'#475569'}}>
+      🌱 {existingField.soilType} <span style={{fontSize:11, color:'#94a3b8'}}>(auto-detected)</span>
+    </div>
+  </div>
+)}
         <div className="fpp-field-group">
           <label className="fpp-label"><Droplets size={13} style={{ display: 'inline', marginRight: 4 }} />Irrigation</label>
           <div className="fpp-toggle-row">
@@ -428,6 +429,15 @@ function FarmCreationPanel({ onCreateFarm, farms, onUpdateFarm }) {
     setDraftFieldPolygon(coords); setSelectedFieldId(null); setEditingShapeId(null);
   }, []);
 
+  const handleSoilDetected = useCallback((soilType) => {
+  if (!selectedFarm || !selectedFieldId || !soilType) return;
+  const updatedFields = (selectedFarm.fields ?? []).map((f) =>
+    f.id === selectedFieldId
+      ? { ...f, soilType }
+      : f
+  );
+  onUpdateFarm({ ...selectedFarm, fields: updatedFields });
+}, [selectedFarm, selectedFieldId, onUpdateFarm]);
   const handleFieldPolygonEdited = useCallback((id, coords) => {
     if (!selectedFarm) return;
     const updatedFields = (selectedFarm.fields ?? []).map((f) =>
@@ -572,7 +582,9 @@ function FarmCreationPanel({ onCreateFarm, farms, onUpdateFarm }) {
 
               {/* ── Climate & Soil panel — auto-fetches when a field is selected ── */}
               {selectedField && (
-                <FieldClimatePanel field={selectedField} />
+                <FieldClimatePanel field={selectedField}
+                onSoilDetected={handleSoilDetected}
+                 />
               )}
             </div>
           </>
