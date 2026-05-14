@@ -28,13 +28,14 @@ export function importTreelineCsv() {
   });
 }
 
-export function getTreelineRecords({ page = 1, limit = 10, search = '', category = 'all', strata = 'all' } = {}) {
+export function getTreelineRecords({ page = 1, limit = 10, search = '', category = 'all', strata = 'all', hardiness = 'all' } = {}) {
   const query = new URLSearchParams({
     page: String(page),
     limit: String(limit),
     search,
     category,
     strata,
+    hardiness, // Now JavaScript knows what this is!
   });
 
   return requestJson(`/treeline/records?${query.toString()}`);
