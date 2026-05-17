@@ -299,14 +299,11 @@ function FieldPropertiesPanel({
           </select>
           {errors.cropType && <p className="fp-error">{errors.cropType}</p>}
         </label>
-
-        <label htmlFor="fp-soilType">
-          Soil Type
-          <select id="fp-soilType" name="soilType" value={form.soilType} onChange={handleChange}>
-            <option value="">Select soil…</option>
-            {SOIL_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
-          </select>
-        </label>
+      {existingField?.soilType && (
+       <div className="fp-metrics">
+         🌱 Soil: {existingField.soilType} <span style={{color:'#94a3b8', fontSize:11}}>(auto-detected)</span>
+       </div>
+      )}
 
         <div className="fp-irrigated-row">
           <span>Irrigated</span>

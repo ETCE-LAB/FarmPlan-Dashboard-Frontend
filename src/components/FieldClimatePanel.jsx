@@ -42,6 +42,78 @@ function toEtrsLaea(lat, lng) {
   return { x: Math.round(x), y: Math.round(y) };
 }
 
+
+// ─── KA5 soil type code → readable name ──────────────────────────────────────
+const KA5_SOIL_TYPES = {
+  '1': 'Sand (S)',
+  '1.1': 'Pure Sand',
+  '2': 'Loamy Sand (lS)',
+  '2.1': 'Slightly Loamy Sand',
+  '2.2': 'Moderately Loamy Sand',
+  '2.3': 'Strongly Loamy Sand',
+  '3': 'Sandy Loam (sL)',
+  '3.1': 'Slightly Sandy Loam',
+  '3.2': 'Moderately Sandy Loam',
+  '3.3': 'Strongly Sandy Loam',
+  '4': 'Loam (L)',
+  '4.1': 'Sandy Loam',
+  '4.2': 'Silt Loam',
+  '4.3': 'Clay Loam',
+  '5': 'Silty Loam (uL)',
+  '5.1': 'Slightly Silty Loam',
+  '5.2': 'Moderately Silty Loam',
+  '6': 'Clay Loam (tL)',
+  '6.1': 'Slightly Clayey Loam',
+  '6.2': 'Moderately Clayey Loam',
+  '7': 'Silt (U)',
+  '7.1': 'Sandy Silt',
+  '7.2': 'Loamy Silt',
+  '8': 'Clayey Silt (tU)',
+  '9': 'Clay (T)',
+  '9.1': 'Slightly Sandy Clay',
+  '9.2': 'Silty Clay',
+  '9.3': 'Pure Clay',
+  '10': 'Heavy Clay (TT)',
+  // Integer codes from BF_KA5 field (numeric column)
+  '1.0': 'Sand (S)',
+  '2.0': 'Loamy Sand (lS)',
+  '2.5': 'Sandy Loam / Loamy Sand',
+  '3.0': 'Sandy Loam (sL)',
+  '3.5': 'Loam / Sandy Loam',
+  '4.0': 'Loam (L)',
+  '4.5': 'Silty Loam / Loam',
+  '5.0': 'Silty Loam (uL)',
+  '5.5': 'Clay Loam / Silty Loam',
+  '6.0': 'Clay Loam (tL)',
+  '6.5': 'Clayey Loam / Clay',
+  '7.0': 'Silt (U)',
+  '7.5': 'Clayey Silt',
+  '8.0': 'Clayey Silt (tU)',
+  '8.5': 'Silty Clay',
+  '9.0': 'Clay (T)',
+  '9.5': 'Heavy Clay',
+  '10.0': 'Heavy Clay (TT)',
+};
+
+function decodeSoilType(raw) {
+  if (!raw) return null;
+  // Normalise: replace German comma decimal separator → dot, trim whitespace
+  const normalised = String(raw).trim().replace(',', '.');
+  // Direct lookup
+  if (KA5_SOIL_TYPES[normalised]) return KA5_SOIL_TYPES[normalised];
+  // Try rounding to nearest 0.5 step as fallback
+  const num = parseFloat(normalised);
+  if (!isNaN(num)) {
+    const rounded = (Math.round(num * 2) / 2).toFixed(1);
+    if (KA5_SOIL_TYPES[rounded]) return KA5_SOIL_TYPES[rounded];
+    // Last resort: integer bucket
+    const intKey = String(Math.round(num));
+    if (KA5_SOIL_TYPES[intKey]) return KA5_SOIL_TYPES[intKey];
+  }
+  // If it's already a readable string (not a number), return it as-is
+  if (isNaN(Number(normalised))) return raw;
+  return `Soil Code ${normalised}`;
+}
 // ─── Data fetchers ────────────────────────────────────────────────────────────
 
 async function fetchWeather(lat, lng) {
@@ -183,14 +255,15 @@ async function fetchSoil(lat, lng) {
   };
 
   // Soil type: try many possible German/English attribute names
-  const soilType =
-    findAttr(bodenResults, ['BF_KA5', 'BF', 'BODENART', 'Legendentext', 'LEGENDENTEXT', 'Legende', 'LEGENDE', 'BEZ', 'BEZEICHNUNG', 'NAME', 'BODENARTENGRUPPE']) ??
-    findAttr(buekResults,  ['LEGEND', 'BEZ_EINH', 'LEGENDENTEXT', 'Legendentext', 'BEZEICHNUNG', 'NAME', 'BEZ', 'SGE']) ??
-    // Last resort: grab first non-numeric, non-ID attribute from boden results
-    (Object.entries(allBodenAttrs).find(([k, v]) =>
-      !['OBJECTID', 'FID', 'Shape', 'SHAPE', 'Shape_Area', 'Shape_Length'].includes(k) &&
-      isNaN(Number(v)) && v.length > 1
-    )?.[1]) ?? null;
+const rawSoilType =
+  findAttr(bodenResults, ['BF_KA5', 'BF', 'BODENART', 'Legendentext', 'LEGENDENTEXT', 'Legende', 'LEGENDE', 'BEZ', 'BEZEICHNUNG', 'NAME', 'BODENARTENGRUPPE']) ??
+  findAttr(buekResults,  ['LEGEND', 'BEZ_EINH', 'LEGENDENTEXT', 'Legendentext', 'BEZEICHNUNG', 'NAME', 'BEZ', 'SGE']) ??
+  (Object.entries(allBodenAttrs).find(([k, v]) =>
+    !['OBJECTID', 'FID', 'Shape', 'SHAPE', 'Shape_Area', 'Shape_Length'].includes(k) &&
+    isNaN(Number(v)) && v.length > 1
+  )?.[1]) ?? null;
+
+const soilType = decodeSoilType(rawSoilType);
 
   const fieldCapacity =
     findAttr(bodenResults, ['NFK', 'NUTZBARE_FK', 'NUTZBARE_FEL', 'nutzbare_Feldkapazitat', 'NFK_WE', 'FK']) ??
@@ -270,7 +343,7 @@ function Section({ title, icon, children, defaultOpen = true }) {
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-function FieldClimatePanel({ field }) {
+function FieldClimatePanel({ field, onSoilDetected }) {
   const [weather, setWeather] = useState(null);
   const [solar,   setSolar]   = useState(null);
   const [soil,    setSoil]    = useState(null);
@@ -303,6 +376,7 @@ function FieldClimatePanel({ field }) {
       if (w.status  === 'fulfilled') setWeather(w.value);
       if (s.status  === 'fulfilled') setSolar(s.value);
       if (so.status === 'fulfilled') setSoil(so.value);
+      if (so.value?.soilType && onSoilDetected) {onSoilDetected(so.value.soilType);}
 
       const failures = [w, s, so].filter((r) => r.status === 'rejected');
       if (failures.length === 3) setError('All data sources failed. Check your network connection.');
