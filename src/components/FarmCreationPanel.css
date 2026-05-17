@@ -1,3 +1,158 @@
+.ddc-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ddc-cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.ddc-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  border: 2px solid #d1d5db;
+  border-radius: 8px;
+  padding: 8px 6px;
+  background: #f8fafc;
+  cursor: grab;
+}
+
+.ddc-card:hover {
+  border-color: #94a3b8;
+  background: #f1f5f9;
+}
+
+.ddc-card.active {
+  border-color: #16a34a;
+  background: #f0fdf4;
+}
+
+.ddc-card:active {
+  cursor: grabbing;
+}
+
+.ddc-placeholder {
+  background: #d1d5db;
+  border-radius: 6px;
+  border: 1px solid #9ca3af;
+}
+
+.ddc-name {
+  font-size: 11px;
+  font-weight: 600;
+  color: #334155;
+  text-align: center;
+}
+
+.ddc-spacing {
+  font-size: 10px;
+  color: #64748b;
+  text-align: center;
+}
+
+.ddc-canvas {
+  position: relative;
+  height: 260px;
+  border: 2px dashed #94a3b8;
+  border-radius: 10px;
+  background:
+    linear-gradient(135deg, rgba(226, 232, 240, 0.35), rgba(248, 250, 252, 0.95));
+  overflow: hidden;
+}
+
+.ddc-canvas-label {
+  position: absolute;
+  top: 8px;
+  left: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #334155;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.ddc-placement {
+  position: absolute;
+  transform: translate(-50%, -50%);
+}
+
+.ddc-spacing-circle {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 999px;
+  border: 2px solid rgba(22, 163, 74, 0.55);
+  background: rgba(22, 163, 74, 0.12);
+}
+
+.ddc-marker {
+  position: relative;
+  z-index: 1;
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  background: #166534;
+  border: 2px solid #ffffff;
+  box-shadow: 0 0 0 1px #166534;
+}
+
+.ddc-marker-label {
+  position: absolute;
+  top: 10px;
+  left: 8px;
+  z-index: 2;
+  font-size: 10px;
+  color: #14532d;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.85);
+  padding: 2px 4px;
+  border-radius: 4px;
+  max-width: 110px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ddc-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: #64748b;
+}
+
+.ddc-drop-message {
+  color: #b91c1c;
+}
+
+.ddc-meta {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.ddc-error {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: 12px;
+  color: #b91c1c;
+}
+
+.ddc-map-feedback {
+  margin: 8px 0 0 0;
+  font-size: 12px;
+  color: #0f766e;
+  font-weight: 500;
+}
 
 /* ─── Create Field Button ─── */
 .create-field-btn {

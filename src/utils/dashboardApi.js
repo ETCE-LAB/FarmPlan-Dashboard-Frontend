@@ -39,3 +39,15 @@ export function getTreelineRecords({ page = 1, limit = 10, search = '', category
 
   return requestJson(`/treeline/records?${query.toString()}`);
 }
+
+export async function getShrubStrataCrops(limit = 6) {
+  const safeLimit = Math.max(1, Math.min(Number(limit) || 6, 100));
+  const payload = await getTreelineRecords({
+    page: 1,
+    limit: safeLimit,
+    category: 'Shrub',
+    strata: 'Shrub layer',
+  });
+
+  return (payload?.records || []).slice(0, safeLimit);
+}

@@ -9,23 +9,17 @@ import 'leaflet/dist/leaflet.css';
 import '@geoman-io/leaflet-geoman-free';
 import '@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css';
 import FieldClimatePanel from './FieldClimatePanel';   // ← NEW
+import DragDropCrops from './DragDropCrops';
 import './FarmCreationPanel.css';
 
 const INITIAL_CENTER = [52.2689, 10.5268];
 const FARM_REQUIRED = ['farmName', 'ownerName', 'location', 'contactEmail'];
-const CROP_OPTIONS = [
-  'Winter Wheat', 'Corn', 'Barley', 'Rapeseed', 'Sunflower',
-  'Rye', 'Oats', 'Soybean', 'Sugar Beet', 'Potato', 'Other',
-];
+const DRAG_CROP_MIME = 'application/x-farm-crop';
 const SOIL_OPTIONS = [
   'Sandy', 'Sandy Loam', 'Loam', 'Clay Loam', 'Clay',
   'Silt', 'Silty Loam', 'Peaty', 'Chalky', 'Other',
 ];
-const CROP_ICONS = {
-  'Winter Wheat': '🌾', Corn: '🌽', Barley: '🌿', Rapeseed: '🌻',
-  Sunflower: '🌻', Rye: '🌾', Oats: '🌾', Soybean: '🫘',
-  'Sugar Beet': '🌱', Potato: '🥔', Other: '🌱',
-};
+
 
 function toMeters(point, referenceLat) {
   const mPerDegLat = 111320;
@@ -89,6 +83,35 @@ function getBoundingBox(fields) {
   };
 }
 
+function isPointInPolygon(point, polygon) {
+  if (!point || !polygon || polygon.length < 3) return false;
+
+  let inside = false;
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    const xi = polygon[i].lng;
+    const yi = polygon[i].lat;
+    const xj = polygon[j].lng;
+    const yj = polygon[j].lat;
+
+    const intersects =
+      yi > point.lat !== yj > point.lat &&
+      point.lng < ((xj - xi) * (point.lat - yi)) / ((yj - yi) || Number.EPSILON) + xi;
+
+    if (intersects) inside = !inside;
+  }
+
+  return inside;
+}
+
+function hasSpacingOverlap(placements, targetPoint, targetSpacingMeters) {
+  return (placements || []).some((placement) => {
+    const distanceM = L.latLng(placement.lat, placement.lng).distanceTo(
+      L.latLng(targetPoint.lat, targetPoint.lng)
+    );
+    return distanceM < (placement.minimumSpacingMeters || 0) + targetSpacingMeters;
+  });
+}
+
 function MapNavigator({ targetLocation }) {
   const map = useMap();
   const markerRef = useRef(null);
@@ -124,6 +147,131 @@ function FarmBoundsZoomer({ fields }) {
       { padding: [48, 48], duration: 0.9, maxZoom: 17 }
     );
   }, [fields, map]);
+  return null;
+}
+
+function MapCropDropTarget({ onDropCrop }) {
+  const map = useMap();
+
+  useEffect(() => {
+    const container = map.getContainer();
+
+    const handleDragOver = (event) => {
+      const hasCrop = event.dataTransfer?.types?.includes(DRAG_CROP_MIME)
+        || event.dataTransfer?.types?.includes('application/json');
+      if (!hasCrop) return;
+      event.preventDefault();
+      event.dataTransfer.dropEffect = 'copy';
+    };
+
+    const handleDrop = (event) => {
+      const payload = event.dataTransfer?.getData(DRAG_CROP_MIME)
+        || event.dataTransfer?.getData('application/json');
+      if (!payload) return;
+
+      event.preventDefault();
+
+      let crop;
+      try {
+        crop = JSON.parse(payload);
+      } catch {
+        return;
+      }
+
+      const rect = container.getBoundingClientRect();
+      const x = event.clientX - rect.left;
+      const y = event.clientY - rect.top;
+      const latLng = map.containerPointToLatLng([x, y]);
+
+      onDropCrop(crop, { lat: latLng.lat, lng: latLng.lng });
+    };
+
+    container.addEventListener('dragover', handleDragOver);
+    container.addEventListener('drop', handleDrop);
+
+    return () => {
+      container.removeEventListener('dragover', handleDragOver);
+      container.removeEventListener('drop', handleDrop);
+    };
+  }, [map, onDropCrop]);
+
+  return null;
+}
+
+function CropPlacementLayer({ fields, draftPolygon, draftPlacements }) {
+  const map = useMap();
+  const layerGroupRef = useRef(null);
+
+  useEffect(() => {
+    if (!layerGroupRef.current) {
+      layerGroupRef.current = L.layerGroup().addTo(map);
+    }
+
+    const group = layerGroupRef.current;
+    group.clearLayers();
+
+    (fields || []).forEach((field) => {
+      (field.cropPlacements || []).forEach((placement) => {
+        const latLng = [placement.lat, placement.lng];
+
+        L.circle(latLng, {
+          radius: placement.minimumSpacingMeters,
+          color: '#16a34a',
+          weight: 2,
+          fillOpacity: 0.08,
+        }).addTo(group);
+
+        L.circleMarker(latLng, {
+          radius: 5,
+          color: '#14532d',
+          weight: 2,
+          fillColor: '#16a34a',
+          fillOpacity: 1,
+        })
+          .bindTooltip(`${placement.cropName} (${placement.minimumSpacingMeters}m)`, {
+            permanent: false,
+            direction: 'top',
+          })
+          .addTo(group);
+      });
+    });
+
+    const hasDraftPolygon = draftPolygon && draftPolygon.length >= 3;
+    if (hasDraftPolygon) {
+      (draftPlacements || []).forEach((placement) => {
+        const latLng = [placement.lat, placement.lng];
+
+        L.circle(latLng, {
+          radius: placement.minimumSpacingMeters,
+          color: '#0ea5e9',
+          weight: 2,
+          fillOpacity: 0.08,
+          dashArray: '6 4',
+        }).addTo(group);
+
+        L.circleMarker(latLng, {
+          radius: 5,
+          color: '#0369a1',
+          weight: 2,
+          fillColor: '#0ea5e9',
+          fillOpacity: 1,
+        })
+          .bindTooltip(`Draft: ${placement.cropName} (${placement.minimumSpacingMeters}m)`, {
+            permanent: false,
+            direction: 'top',
+          })
+          .addTo(group);
+      });
+    }
+  }, [map, fields, draftPolygon, draftPlacements]);
+
+  useEffect(() => () => {
+    if (layerGroupRef.current && map.hasLayer(layerGroupRef.current)) {
+      map.removeLayer(layerGroupRef.current);
+      layerGroupRef.current = null;
+    }
+  }, [map]);
+
   return null;
 }
 
@@ -218,7 +366,7 @@ function FieldDrawer({
 
 function FieldPropertiesPanel({
   polygon, existingField, onSave, onCancel, onDelete,
-  farmName, onEditShape, isEditingShape,
+  farmName, onEditShape, isEditingShape, cropDropFeedback,
 }) {
   const [form, setForm] = useState(
     existingField
@@ -289,17 +437,14 @@ function FieldPropertiesPanel({
         </div>
         <div className="fpp-field-group">
           <label className="fpp-label">Crop Type <span className="fpp-req">*</span></label>
-          <div className="fpp-crop-grid">
-            {CROP_OPTIONS.map((c) => (
-              <button key={c} type="button"
-                className={`fpp-crop-btn ${form.cropType === c ? 'active' : ''}`}
-                onClick={() => { setForm(p => ({ ...p, cropType: c })); if (errors.cropType) setErrors(p => ({ ...p, cropType: undefined })); }}
-              >
-                <span className="fpp-crop-icon">{CROP_ICONS[c]}</span>
-                <span className="fpp-crop-label">{c}</span>
-              </button>
-            ))}
-          </div>
+          <DragDropCrops
+            selectedCropType={form.cropType}
+            onSelectCropType={(cropName) => {
+              setForm((prev) => ({ ...prev, cropType: cropName }));
+              if (errors.cropType) setErrors((prev) => ({ ...prev, cropType: undefined }));
+            }}
+          />
+          {cropDropFeedback && <p className="ddc-map-feedback">{cropDropFeedback}</p>}
           {errors.cropType && <p className="fpp-error-msg">{errors.cropType}</p>}
         </div>
         {existingField?.soilType && (
@@ -356,6 +501,8 @@ function FarmCreationPanel({ onCreateFarm, farms, onUpdateFarm }) {
   const [selectedFieldId, setSelectedFieldId] = useState(null);
   const [editingShapeId, setEditingShapeId] = useState(null);
   const [draftFieldPolygon, setDraftFieldPolygon] = useState(null);
+  const [draftCropPlacements, setDraftCropPlacements] = useState([]);
+  const [cropDropFeedback, setCropDropFeedback] = useState('');
   const [farmBoundsFields, setFarmBoundsFields] = useState(null);
   const [mapTargetLocation, setMapTargetLocation] = useState(null);
   const [fieldZoomTarget, setFieldZoomTarget] = useState(null);
@@ -407,7 +554,7 @@ function FarmCreationPanel({ onCreateFarm, farms, onUpdateFarm }) {
       } else setFarmBoundsFields(null);
       return nextId;
     });
-    setSelectedFieldId(null); setEditingShapeId(null); setDraftFieldPolygon(null);
+    setSelectedFieldId(null); setEditingShapeId(null); setDraftFieldPolygon(null); setDraftCropPlacements([]); setCropDropFeedback('');
   }, [farms]);
 
   const handleFieldClick = useCallback((id) => {
@@ -422,11 +569,11 @@ function FarmCreationPanel({ onCreateFarm, farms, onUpdateFarm }) {
       } else setFieldZoomTarget(null);
       return nextId;
     });
-    setDraftFieldPolygon(null); setEditingShapeId(null);
+    setDraftFieldPolygon(null); setDraftCropPlacements([]); setEditingShapeId(null); setCropDropFeedback('');
   }, [selectedFarm]);
 
   const handleFieldPolygonDrawn = useCallback((coords) => {
-    setDraftFieldPolygon(coords); setSelectedFieldId(null); setEditingShapeId(null);
+    setDraftFieldPolygon(coords); setDraftCropPlacements([]); setSelectedFieldId(null); setEditingShapeId(null); setCropDropFeedback('');
   }, []);
 
   const handleSoilDetected = useCallback((soilType) => {
@@ -450,25 +597,95 @@ function FarmCreationPanel({ onCreateFarm, farms, onUpdateFarm }) {
 
   const handleEditShape = useCallback((id) => { setEditingShapeId((prev) => (prev === id ? null : id)); }, []);
 
+  const handleCropDroppedOnMap = useCallback((crop, point) => {
+    if (!selectedFarm) {
+      setCropDropFeedback('Select a farm first.');
+      return;
+    }
+
+    const targetPolygon = draftFieldPolygon ?? selectedField?.borderPolygon ?? null;
+    if (!targetPolygon || targetPolygon.length < 3) {
+      setCropDropFeedback('Draw or select a field polygon before dropping crops.');
+      return;
+    }
+
+    if (!isPointInPolygon(point, targetPolygon)) {
+      setCropDropFeedback('Drop inside the active field polygon.');
+      return;
+    }
+
+    const spacingMeters = Number(crop.minimumSpacingMeters) || 1;
+    const placement = {
+      id: `${crop.id}-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+      cropId: crop.id,
+      cropName: crop.name,
+      minimumSpacingMeters: spacingMeters,
+      lat: Number(point.lat.toFixed(7)),
+      lng: Number(point.lng.toFixed(7)),
+    };
+
+    if (draftFieldPolygon) {
+      if (hasSpacingOverlap(draftCropPlacements, point, spacingMeters)) {
+        setCropDropFeedback(`Cannot place ${crop.name}: minimum spacing overlaps another crop.`);
+        return;
+      }
+
+      setDraftCropPlacements((prev) => [...prev, placement]);
+      setCropDropFeedback(`Placed ${crop.name} on draft field.`);
+      return;
+    }
+
+    if (!selectedFieldId) {
+      setCropDropFeedback('Select a field to place crops.');
+      return;
+    }
+
+    const existingPlacements = selectedField?.cropPlacements || [];
+    if (hasSpacingOverlap(existingPlacements, point, spacingMeters)) {
+      setCropDropFeedback(`Cannot place ${crop.name}: minimum spacing overlaps another crop.`);
+      return;
+    }
+
+    const updatedFields = (selectedFarm.fields || []).map((field) => {
+      if (field.id !== selectedFieldId) return field;
+      return {
+        ...field,
+        cropType: crop.name,
+        cropPlacements: [...existingPlacements, placement],
+      };
+    });
+
+    onUpdateFarm({ ...selectedFarm, fields: updatedFields });
+    setCropDropFeedback(`Placed ${crop.name} on ${selectedField?.fieldName || 'selected field'}.`);
+  }, [selectedFarm, draftFieldPolygon, selectedField, selectedFieldId, draftCropPlacements, onUpdateFarm]);
+
   const handleFieldSave = (fieldData) => {
     if (!selectedFarm) return;
     let updatedFields;
     if (draftFieldPolygon) {
-      updatedFields = [...(selectedFarm.fields ?? []), { id: Date.now(), ...fieldData, createdAt: new Date().toISOString() }];
+      updatedFields = [
+        ...(selectedFarm.fields ?? []),
+        {
+          id: Date.now(),
+          ...fieldData,
+          cropPlacements: draftCropPlacements,
+          createdAt: new Date().toISOString(),
+        },
+      ];
     } else if (selectedFieldId) {
       updatedFields = (selectedFarm.fields ?? []).map((f) => f.id === selectedFieldId ? { ...f, ...fieldData } : f);
     }
     onUpdateFarm({ ...selectedFarm, fields: updatedFields });
-    setDraftFieldPolygon(null); setSelectedFieldId(null); setEditingShapeId(null);
+    setDraftFieldPolygon(null); setDraftCropPlacements([]); setSelectedFieldId(null); setEditingShapeId(null); setCropDropFeedback('');
   };
 
   const handleFieldDelete = (id) => {
     if (!selectedFarm) return;
     onUpdateFarm({ ...selectedFarm, fields: (selectedFarm.fields ?? []).filter((f) => f.id !== id) });
-    setSelectedFieldId(null); setEditingShapeId(null); setDraftFieldPolygon(null);
+    setSelectedFieldId(null); setEditingShapeId(null); setDraftFieldPolygon(null); setDraftCropPlacements([]); setCropDropFeedback('');
   };
 
-  const handleFieldCancel = () => { setDraftFieldPolygon(null); setSelectedFieldId(null); setEditingShapeId(null); };
+  const handleFieldCancel = () => { setDraftFieldPolygon(null); setDraftCropPlacements([]); setSelectedFieldId(null); setEditingShapeId(null); setCropDropFeedback(''); };
 
   const handleLocationSearch = async () => {
     const cleaned = searchInput.trim();
@@ -555,7 +772,6 @@ function FarmCreationPanel({ onCreateFarm, farms, onUpdateFarm }) {
                         onKeyDown={(e) => e.key === 'Enter' && handleFieldClick(f.id)}
                       >
                         <div className="fli-top">
-                          <span className="fli-icon">{CROP_ICONS[f.cropType] || '🌱'}</span>
                           <span className="fli-name fli-name-zoomable" title="Click to zoom to this field"
                             onClick={(e) => {
                               e.stopPropagation();
@@ -600,7 +816,7 @@ function FarmCreationPanel({ onCreateFarm, farms, onUpdateFarm }) {
           </span>
         </div>
         <p className={`map-help-text ${selectedFarm ? '' : 'map-help-neutral'}`}>
-          {selectedFarm ? 'Use the polygon tool (top-right) to draw a field, or click an existing field to edit.' : 'Select a farm from the list below to start adding fields.'}
+          {selectedFarm ? 'Use the polygon tool to draw/select a field, then drag shrub crops from the panel and drop them inside that polygon.' : 'Select a farm from the list below to start adding fields.'}
         </p>
         <div className="location-search-row">
           <input type="text" value={searchInput} onChange={(e) => setSearchInput(e.target.value)}
@@ -616,6 +832,12 @@ function FarmCreationPanel({ onCreateFarm, farms, onUpdateFarm }) {
           <MapNavigator targetLocation={mapTargetLocation} />
           <FieldZoomNavigator target={fieldZoomTarget} />
           <FarmBoundsZoomer fields={farmBoundsFields} />
+          <MapCropDropTarget onDropCrop={handleCropDroppedOnMap} />
+          <CropPlacementLayer
+            fields={activeFields}
+            draftPolygon={draftFieldPolygon}
+            draftPlacements={draftCropPlacements}
+          />
           {selectedFarm && (
             <FieldDrawer fields={activeFields} selectedFieldId={selectedFieldId} editingShapeId={editingShapeId}
               onPolygonDrawn={handleFieldPolygonDrawn} onPolygonEdited={handleFieldPolygonEdited} onFieldClick={handleFieldClick} />
@@ -633,7 +855,10 @@ function FarmCreationPanel({ onCreateFarm, farms, onUpdateFarm }) {
         {isFieldPanelOpen && selectedFarm && (
           <FieldPropertiesPanel polygon={activeFieldPoly} existingField={selectedField}
             onSave={handleFieldSave} onCancel={handleFieldCancel} onDelete={handleFieldDelete}
-            farmName={selectedFarm.farmName} onEditShape={handleEditShape} isEditingShape={editingShapeId === selectedFieldId} />
+            farmName={selectedFarm.farmName} onEditShape={handleEditShape}
+            isEditingShape={editingShapeId === selectedFieldId}
+            cropDropFeedback={cropDropFeedback}
+          />
         )}
       </article>
 
@@ -659,9 +884,6 @@ function FarmCreationPanel({ onCreateFarm, farms, onUpdateFarm }) {
                 <small className="farm-list-stats">{farm.ownerName}</small>
                 {(farm.fields ?? []).length > 0 && (
                   <div className="farm-field-chips">
-                    {(farm.fields ?? []).map((f) => (
-                      <span key={f.id} className="field-badge soil">{CROP_ICONS[f.cropType] || '🌱'} {f.fieldName}</span>
-                    ))}
                   </div>
                 )}
                 {farm.id === selectedFarmId && (
