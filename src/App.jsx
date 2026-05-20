@@ -63,8 +63,11 @@ function App() {
   
   // API State
   const [overviewData, setOverviewData] = useState({ stats: [], performance: [], meta: null });
-  const [tableData, setTableData] = useState({ records: [], options: { categories: [], strata: [] }, pagination: { page: 1, limit: 10, total: 0 } });
-  const [tableFilters, setTableFilters] = useState({ search: '', category: 'all', strata: 'all', page: 1, limit: 10 });
+  const [tableData, setTableData] = useState({ records: [], options: { categories: [], strata: [], hardinessZones: [] }, pagination: { page: 1, limit: 10, total: 0 } });
+  
+  // FIXED: Added hardiness filter to the correct tableFilters state
+  const [tableFilters, setTableFilters] = useState({ search: '', category: 'all', strata: 'all', hardiness: 'all', page: 1, limit: 10 });
+  
   const [isOverviewLoading, setIsOverviewLoading] = useState(false);
   const [isTableLoading, setIsTableLoading] = useState(false);
   const [overviewError, setOverviewError] = useState('');
@@ -94,10 +97,29 @@ function App() {
     setIsTableLoading(true);
     try {
       const payload = await getTreelineRecords(filters);
-      setTableData(prev => ({ ...prev, records: payload.records || [], pagination: payload.pagination }));
+      // FIXED: Ensure options (dropdown menus) are saved from the API payload
+      setTableData(prev => ({ 
+        ...prev, 
+        records: payload.records || [], 
+        options: payload.options || { categories: [], strata: [], hardinessZones: [] },
+        pagination: payload.pagination 
+      }));
     } catch (e) { setTableError(e.message); }
     finally { setIsTableLoading(false); }
   }, []);
+
+  const handleForceReload = async () => {
+    setIsTableLoading(true);
+    try {
+      await importTreelineCsv(); // Tell Python to wipe the DB and re-read the CSV!
+      await loadTableData(tableFilters); // Fetch the fresh, new data
+      await loadOverviewData(); // Update the top stats just in case
+    } catch (e) { 
+      setTableError(e.message); 
+    } finally { 
+      setIsTableLoading(false); 
+    }
+  };
 
   useEffect(() => { loadOverviewData(); }, [loadOverviewData]);
   useEffect(() => { loadTableData(tableFilters); }, [tableFilters, loadTableData]);
@@ -164,13 +186,20 @@ function App() {
             <FarmEditPanel farms={farms} onUpdateFarm={handleUpdateFarm} onDeleteFarm={handleDeleteFarm} />
           )}
 
+          {/* FIXED: Hooked up to actual tableData, tableFilters, and isTableLoading */}
           {activeTab === 'plants' && (
-            <PlantsPanel 
-              rows={tableData.records} 
-              filters={tableFilters} 
+            <PlantsPanel
+              rows={tableData.records}
+              filters={tableFilters}
+              options={tableData.options}
               pagination={tableData.pagination}
-              onSearch={(s) => setTableFilters(p => ({...p, search: s, page: 1}))}
-              onPageChange={(p) => setTableFilters(prev => ({...prev, page: p}))}
+              onSearch={(val) => setTableFilters(prev => ({ ...prev, search: val, page: 1 }))}
+              onCategoryChange={(val) => setTableFilters(prev => ({ ...prev, category: val, page: 1 }))}
+              onStrataChange={(val) => setTableFilters(prev => ({ ...prev, strata: val, page: 1 }))}
+              onHardinessChange={(val) => setTableFilters(prev => ({ ...prev, hardiness: val, page: 1 }))} 
+              onLimitChange={(val) => setTableFilters(prev => ({ ...prev, limit: val, page: 1 }))}
+              onPageChange={(val) => setTableFilters(prev => ({ ...prev, page: val }))}
+              onReload={handleForceReload} 
               isLoading={isTableLoading}
             />
           )}
