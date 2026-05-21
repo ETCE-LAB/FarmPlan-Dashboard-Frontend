@@ -56,7 +56,9 @@ function buildThemeVariables(theme) {
 }
 
 function App() {
-  const { t } = useTranslation();
+  // WE PULLED i18n OUT HERE SO REACT CAN LISTEN TO IT!
+  const { t, i18n } = useTranslation();
+  
   const [activeTab, setActiveTab] = useState('overview');
   const [farms, setFarms] = useState([]);
   const [theme, setTheme] = useState(LIGHT_THEME_DEFAULTS);
@@ -65,7 +67,6 @@ function App() {
   const [overviewData, setOverviewData] = useState({ stats: [], performance: [], meta: null });
   const [tableData, setTableData] = useState({ records: [], options: { categories: [], strata: [], hardinessZones: [] }, pagination: { page: 1, limit: 10, total: 0 } });
   
-  // FIXED: Added hardiness filter to the correct tableFilters state
   const [tableFilters, setTableFilters] = useState({ search: '', category: 'all', strata: 'all', hardiness: 'all', page: 1, limit: 10 });
   
   const [isOverviewLoading, setIsOverviewLoading] = useState(false);
@@ -97,7 +98,6 @@ function App() {
     setIsTableLoading(true);
     try {
       const payload = await getTreelineRecords(filters);
-      // FIXED: Ensure options (dropdown menus) are saved from the API payload
       setTableData(prev => ({ 
         ...prev, 
         records: payload.records || [], 
@@ -111,9 +111,9 @@ function App() {
   const handleForceReload = async () => {
     setIsTableLoading(true);
     try {
-      await importTreelineCsv(); // Tell Python to wipe the DB and re-read the CSV!
-      await loadTableData(tableFilters); // Fetch the fresh, new data
-      await loadOverviewData(); // Update the top stats just in case
+      await importTreelineCsv(); 
+      await loadTableData(tableFilters); 
+      await loadOverviewData(); 
     } catch (e) { 
       setTableError(e.message); 
     } finally { 
@@ -136,20 +136,22 @@ function App() {
 };
   const handleDeleteFarm = async (id) => await deleteDoc(doc(db, 'farms', id));
 
+  // I WRAPPED THESE TITLES SO THEY WILL TRANSLATE TOO!
   const getPageMeta = () => {
     switch (activeTab) {
-      case 'farm-create': return { title: 'Farm Setup', subtitle: 'Draw your farm border on the map.' };
-      case 'farm-edit': return { title: t('tabs.farm_edit', 'Farm Edit'), subtitle: 'Edit or delete existing farms.' };
-      case 'plants': return { title: 'Plants Inventory', subtitle: 'Search and browse plants.' };
-      case 'configuration': return { title: 'Settings', subtitle: 'Manage themes and preferences.' };
-      default: return { title: 'Project Overview', subtitle: 'Connected to Live Database' };
+      case 'farm-create': return { title: t('Farm Setup', 'Farm Setup'), subtitle: t('Draw your farm border on the map.', 'Draw your farm border on the map.') };
+      case 'farm-edit': return { title: t('tabs.farm_edit', 'Farm Edit'), subtitle: t('Edit or delete existing farms.', 'Edit or delete existing farms.') };
+      case 'plants': return { title: t('Plants Inventory', 'Plants Inventory'), subtitle: t('Search and browse plants.', 'Search and browse plants.') };
+      case 'configuration': return { title: t('Settings', 'Settings'), subtitle: t('Manage themes and preferences.', 'Manage themes and preferences.') };
+      default: return { title: t('Project Overview', 'Project Overview'), subtitle: t('Connected to Live Database', 'Connected to Live Database') };
     }
   };
 
   const meta = getPageMeta();
 
   return (
-    <div className={`layout theme-${theme.mode}`} style={themeVariables}>
+    // THE MAGIC KEY IS ADDED RIGHT HERE ON THIS DIV:
+    <div key={i18n.language} className={`layout theme-${theme.mode}`} style={themeVariables}>
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
       
       <main className="main-panel">
@@ -175,18 +177,17 @@ function App() {
           )}
 
           {activeTab === 'farm-create' && (
-  <FarmCreationPanel
-    onCreateFarm={handleCreateFarm}
-    farms={farms}
-    onUpdateFarm={handleUpdateFarm}
-  />
-)}
+            <FarmCreationPanel
+              onCreateFarm={handleCreateFarm}
+              farms={farms}
+              onUpdateFarm={handleUpdateFarm}
+            />
+          )}
 
           {activeTab === 'farm-edit' && (
             <FarmEditPanel farms={farms} onUpdateFarm={handleUpdateFarm} onDeleteFarm={handleDeleteFarm} />
           )}
 
-          {/* FIXED: Hooked up to actual tableData, tableFilters, and isTableLoading */}
           {activeTab === 'plants' && (
             <PlantsPanel
               rows={tableData.records}

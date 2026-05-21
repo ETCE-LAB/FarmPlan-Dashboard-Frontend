@@ -21,10 +21,10 @@ function StatsRow({ farms = [], stats = [], isLoading = false }) {
       <div className="stats-row">
         {stats.map((stat) => (
           <div key={stat.label} className="card">
-            <span className="card-label">{stat.label}</span>
+            <span className="card-label">{stat.label ? t(stat.label) : ''}</span>
             <div className="card-content">
               <span className="card-value">{stat.value}</span>
-              <span className="card-unit">{stat.unit}</span>
+              <span className="card-unit">{stat.unit ? t(stat.unit) : ''}</span>
             </div>
           </div>
         ))}
@@ -45,7 +45,7 @@ function StatsRow({ farms = [], stats = [], isLoading = false }) {
             {t('stats.total_area', 'Total Area')}
           </div>
           <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--heading-main)' }}>
-            {isLoading ? '...' : `${totalArea.toFixed(1)} ha`}
+            {isLoading ? '...' : `${totalArea.toFixed(1)} ${t('ha')}`}
           </div>
         </div>
       </div>
@@ -75,7 +75,7 @@ function StatsRow({ farms = [], stats = [], isLoading = false }) {
             {t('stats.avg_size', 'Average Size')}
           </div>
           <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--heading-main)' }}>
-            {isLoading ? '...' : `${avgSize.toFixed(1)} ha`}
+            {isLoading ? '...' : `${avgSize.toFixed(1)} ${t('ha')}`}
           </div>
         </div>
       </div>
@@ -90,7 +90,7 @@ function StatsRow({ farms = [], stats = [], isLoading = false }) {
             {t('stats.largest_farm', 'Largest Farm')}
           </div>
           <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--heading-main)' }}>
-            {isLoading ? '...' : `${largestSize.toFixed(1)} ha`}
+            {isLoading ? '...' : `${largestSize.toFixed(1)} ${t('ha')}`}
           </div>
         </div>
       </div>

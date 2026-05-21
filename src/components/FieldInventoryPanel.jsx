@@ -61,11 +61,11 @@ function FieldInventoryPanel({
                   <br />
                   <small className="crop-name">{farm.ownerName}</small>
                 </td>
-                <td>{Number(farm.areaHectares || 0).toFixed(2)} ha</td>
+                <td>{Number(farm.areaHectares || 0).toFixed(2)} {t('ha', 'ha')}</td>
                 <td className="last-update">
                   <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                     <MapPin size={12} /> 
-                    {farm.location || 'N/A'}
+                    {farm.location || t('N/A', 'N/A')}
                   </div>
                 </td>
               </tr>
@@ -80,11 +80,11 @@ function FieldInventoryPanel({
       <div className="panel-header" style={{ paddingTop: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <Rows3 size={16} />
-          <span>Treeline Inventory (CSV)</span>
+          <span>{t('Treeline Inventory (CSV)', 'Treeline Inventory (CSV)')}</span>
         </div>
         <button className="refresh-btn" type="button" onClick={onReload} disabled={isLoading}>
           <RefreshCw size={10} className={isLoading ? 'spin' : ''} /> 
-          {isLoading ? ' Loading...' : ' Reload CSV'}
+          {isLoading ? t(' Loading...', ' Loading...') : t(' Reload CSV', ' Reload CSV')}
         </button>
       </div>
 
@@ -95,12 +95,12 @@ function FieldInventoryPanel({
             type="search"
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
-            placeholder="Search plants..."
+            placeholder={t('Search plants...', 'Search plants...')}
           />
         </form>
 
         <select className="table-control" value={filters.category} onChange={(e) => onCategoryChange(e.target.value)}>
-          <option value="all">All categories</option>
+          <option value="all">{t('All categories', 'All categories')}</option>
           {options.categories.map((c) => <option key={c} value={c}>{c}</option>)}
         </select>
       </div>
@@ -108,10 +108,10 @@ function FieldInventoryPanel({
       <table className="inventory-table">
         <thead>
           <tr>
-            <th>ID</th>
-            <th>Plant</th>
-            <th>Category</th>
-            <th>Strata</th>
+            <th>{t('ID', 'ID')}</th>
+            <th>{t('Plant', 'Plant')}</th>
+            <th>{t('Category', 'Category')}</th>
+            <th>{t('Strata', 'Strata')}</th>
           </tr>
         </thead>
         <tbody>
@@ -125,17 +125,17 @@ function FieldInventoryPanel({
               </tr>
             ))
           ) : (
-            <tr><td colSpan={4} className="last-update">No plant data found.</td></tr>
+            <tr><td colSpan={4} className="last-update">{t('No plant data found.', 'No plant data found.')}</td></tr>
           )}
         </tbody>
       </table>
       
       {/* PAGINATION */}
       <div className="pagination-row">
-        <div className="pagination-info">Page {pagination.page} of {pagination.totalPages}</div>
+        <div className="pagination-info">{t('Page', 'Page')} {pagination.page} {t('of', 'of')} {pagination.totalPages}</div>
         <div className="pagination-actions">
-          <button className="pagination-btn" onClick={() => onPageChange(pagination.page - 1)} disabled={pagination.page <= 1 || isLoading}>Prev</button>
-          <button className="pagination-btn" onClick={() => onPageChange(pagination.page + 1)} disabled={pagination.page >= pagination.totalPages || isLoading}>Next</button>
+          <button className="pagination-btn" onClick={() => onPageChange(pagination.page - 1)} disabled={pagination.page <= 1 || isLoading}>{t('Prev', 'Prev')}</button>
+          <button className="pagination-btn" onClick={() => onPageChange(pagination.page + 1)} disabled={pagination.page >= pagination.totalPages || isLoading}>{t('Next', 'Next')}</button>
         </div>
       </div>
     </section>

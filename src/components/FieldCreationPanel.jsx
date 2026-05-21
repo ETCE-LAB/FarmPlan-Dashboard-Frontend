@@ -6,6 +6,7 @@ import 'leaflet/dist/leaflet.css';
 import '@geoman-io/leaflet-geoman-free';
 import '@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css';
 import './FieldCreationPanel.css';
+import { useTranslation } from 'react-i18next'; // <-- Imported useTranslation
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -114,6 +115,7 @@ function FieldMapManager({
   const layerMapRef = useRef({});
   const farmLayerRef = useRef(null);
   const drawingRef = useRef(false);
+  const { t } = useTranslation();
 
   // ── Farm boundary reference ──────────────────────────────────────────────
   useEffect(() => {
@@ -126,14 +128,14 @@ function FieldMapManager({
         farmPolygon.map((p) => [p.lat, p.lng]),
         { color: '#1b5e20', weight: 2.5, fillOpacity: 0.06, dashArray: '8 5' },
       ).addTo(map);
-      farmLayerRef.current.bindTooltip('Farm boundary', {
+      farmLayerRef.current.bindTooltip(t('Farm boundary', 'Farm boundary'), {
         permanent: false, direction: 'center', className: 'farm-tooltip',
       });
     }
     return () => {
       if (farmLayerRef.current) map.removeLayer(farmLayerRef.current);
     };
-  }, [map, farmPolygon]);
+  }, [map, farmPolygon, t]);
 
   // ── Render / restyle saved fields ────────────────────────────────────────
   useEffect(() => {
@@ -166,14 +168,14 @@ function FieldMapManager({
         ).addTo(map);
 
         layer.on('click', () => onFieldClick(field.id));
-        layer.bindTooltip(field.fieldName || 'Unnamed field', {
+        layer.bindTooltip(field.fieldName || t('Unnamed field', 'Unnamed field'), {
           permanent: false, direction: 'center', className: 'field-tooltip',
         });
 
         layerMapRef.current[field.id] = layer;
       }
     }
-  }, [fields, selectedFieldId, editingShapeId, map, onFieldClick]);
+  }, [fields, selectedFieldId, editingShapeId, map, onFieldClick, t]);
 
   // ── Edit-mode: sync new coords after pm:edit ─────────────────────────────
   useEffect(() => {
@@ -241,6 +243,7 @@ function FieldPropertiesPanel({
       : EMPTY_FORM,
   );
   const [errors, setErrors] = useState({});
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (existingField) {
@@ -261,8 +264,8 @@ function FieldPropertiesPanel({
 
   const validate = () => {
     const next = {};
-    if (!form.fieldName.trim()) next.fieldName = 'Field name is required.';
-    if (!form.cropType.trim()) next.cropType = 'Crop type is required.';
+    if (!form.fieldName.trim()) next.fieldName = t('Field name is required.', 'Field name is required.');
+    if (!form.cropType.trim()) next.cropType = t('Crop type is required.', 'Crop type is required.');
     setErrors(next);
     return Object.keys(next).length === 0;
   };
@@ -280,60 +283,60 @@ function FieldPropertiesPanel({
   return (
     <aside className="field-props-panel">
       <div className="field-props-header">
-        <span>{existingField ? 'Edit Field' : 'New Field'}</span>
-        <button className="close-btn" type="button" onClick={onCancel} title="Cancel">✕</button>
+        <span>{existingField ? t('Edit Field', 'Edit Field') : t('New Field', 'New Field')}</span>
+        <button className="close-btn" type="button" onClick={onCancel} title={t('Cancel', 'Cancel')}>✕</button>
       </div>
 
       <div className="field-props-body">
         <label htmlFor="fp-fieldName">
-          Field Name <span className="req">*</span>
-          <input id="fp-fieldName" name="fieldName" value={form.fieldName} onChange={handleChange} placeholder="e.g., North Plot" />
+          {t('Field Name', 'Field Name')} <span className="req">*</span>
+          <input id="fp-fieldName" name="fieldName" value={form.fieldName} onChange={handleChange} placeholder={t('e.g., North Plot', 'e.g., North Plot')} />
           {errors.fieldName && <p className="fp-error">{errors.fieldName}</p>}
         </label>
 
         <label htmlFor="fp-cropType">
-          Crop Type <span className="req">*</span>
+          {t('Crop Type', 'Crop Type')} <span className="req">*</span>
           <select id="fp-cropType" name="cropType" value={form.cropType} onChange={handleChange}>
-            <option value="">Select crop…</option>
-            {CROP_OPTIONS.map((c) => <option key={c} value={c}>{c}</option>)}
+            <option value="">{t('Select crop…', 'Select crop…')}</option>
+            {CROP_OPTIONS.map((c) => <option key={c} value={c}>{t(c, c)}</option>)}
           </select>
           {errors.cropType && <p className="fp-error">{errors.cropType}</p>}
         </label>
       {existingField?.soilType && (
        <div className="fp-metrics">
-         🌱 Soil: {existingField.soilType} <span style={{color:'#94a3b8', fontSize:11}}>(auto-detected)</span>
+         🌱 {t('Soil', 'Soil')}: {t(existingField.soilType, existingField.soilType)} <span style={{color:'#94a3b8', fontSize:11}}>({t('auto-detected', 'auto-detected')})</span>
        </div>
       )}
 
         <div className="fp-irrigated-row">
-          <span>Irrigated</span>
+          <span>{t('Irrigated', 'Irrigated')}</span>
           <div className="fp-toggle-group">
-            <button type="button" className={`fp-toggle-btn ${form.irrigated ? 'active' : ''}`} onClick={() => setForm((p) => ({ ...p, irrigated: true }))}>Yes</button>
-            <button type="button" className={`fp-toggle-btn ${!form.irrigated ? 'active' : ''}`} onClick={() => setForm((p) => ({ ...p, irrigated: false }))}>No</button>
+            <button type="button" className={`fp-toggle-btn ${form.irrigated ? 'active' : ''}`} onClick={() => setForm((p) => ({ ...p, irrigated: true }))}>{t('Yes', 'Yes')}</button>
+            <button type="button" className={`fp-toggle-btn ${!form.irrigated ? 'active' : ''}`} onClick={() => setForm((p) => ({ ...p, irrigated: false }))}>{t('No', 'No')}</button>
           </div>
         </div>
 
         <div className="fp-metrics">
-          <span>📐 {area.toFixed(2)} ha</span>
-          <span>📍 {polygon.length} pts</span>
+          <span>📐 {area.toFixed(2)} {t('ha', 'ha')}</span>
+          <span>📍 {polygon.length} {t('pts', 'pts')}</span>
         </div>
 
         <label htmlFor="fp-notes">
-          Notes
-          <textarea id="fp-notes" name="notes" rows={3} value={form.notes} onChange={handleChange} placeholder="Irrigation plan, soil tests, legal notes…" />
+          {t('Notes', 'Notes')}
+          <textarea id="fp-notes" name="notes" rows={3} value={form.notes} onChange={handleChange} placeholder={t('Irrigation plan, soil tests, legal notes…', 'Irrigation plan, soil tests, legal notes…')} />
         </label>
 
         {existingField && (
           <button type="button" className={`fp-edit-shape-btn ${isEditingShape ? 'active' : ''}`} onClick={() => onEditShape(existingField.id)}>
-            {isEditingShape ? '✓ Finish Reshaping' : '✏ Edit Shape on Map'}
+            {isEditingShape ? t('✓ Finish Reshaping', '✓ Finish Reshaping') : t('✏ Edit Shape on Map', '✏ Edit Shape on Map')}
           </button>
         )}
       </div>
 
       <div className="field-props-footer">
-        {existingField && <button type="button" className="fp-danger-btn" onClick={() => onDelete(existingField.id)}>Delete</button>}
-        <button type="button" className="fp-secondary-btn" onClick={onCancel}>Cancel</button>
-        <button type="button" className="fp-primary-btn" onClick={handleSave}>Save Field</button>
+        {existingField && <button type="button" className="fp-danger-btn" onClick={() => onDelete(existingField.id)}>{t('Delete', 'Delete')}</button>}
+        <button type="button" className="fp-secondary-btn" onClick={onCancel}>{t('Cancel', 'Cancel')}</button>
+        <button type="button" className="fp-primary-btn" onClick={handleSave}>{t('Save Field', 'Save Field')}</button>
       </div>
     </aside>
   );
@@ -354,6 +357,7 @@ function FieldCreationPanel({ farm }) {
   const [searchFeedback, setSearchFeedback] = useState({ type: '', message: '' });
   const [isSearching, setIsSearching] = useState(false);
   const [mapTargetLocation, setMapTargetLocation] = useState(null);
+  const { t } = useTranslation();
 
   const isPanelOpen = draftPolygon !== null || selectedFieldId !== null;
   const selectedField = fields.find((f) => f.id === selectedFieldId) ?? null;
@@ -412,14 +416,14 @@ function FieldCreationPanel({ farm }) {
   const handleLocationSearch = async () => {
     const cleaned = searchInput.trim();
     if (!cleaned) {
-      setSearchFeedback({ type: 'error', message: 'Enter an address or coordinates (lat, lng).' });
+      setSearchFeedback({ type: 'error', message: t('Enter an address or coordinates (lat, lng).', 'Enter an address or coordinates (lat, lng).') });
       return;
     }
 
     const coords = parseCoordinates(cleaned);
     if (coords) {
       setMapTargetLocation(coords);
-      setSearchFeedback({ type: 'success', message: `Centered map at ${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}.` });
+      setSearchFeedback({ type: 'success', message: `${t('Centered map at', 'Centered map at')} ${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}.` });
       return;
     }
 
@@ -429,11 +433,11 @@ function FieldCreationPanel({ farm }) {
       const query = encodeURIComponent(cleaned);
       const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${query}`);
       
-      if (!response.ok) throw new Error('Address lookup failed.');
+      if (!response.ok) throw new Error(t('Address lookup failed.', 'Address lookup failed.'));
       
       const results = await response.json();
       if (!Array.isArray(results) || results.length === 0) {
-        setSearchFeedback({ type: 'error', message: 'No matching place found. Try a more specific address.' });
+        setSearchFeedback({ type: 'error', message: t('No matching place found. Try a more specific address.', 'No matching place found. Try a more specific address.') });
         return;
       }
 
@@ -442,14 +446,14 @@ function FieldCreationPanel({ farm }) {
       const lng = Number(first.lon);
       
       if (Number.isNaN(lat) || Number.isNaN(lng)) {
-        setSearchFeedback({ type: 'error', message: 'Result did not contain valid coordinates.' });
+        setSearchFeedback({ type: 'error', message: t('Result did not contain valid coordinates.', 'Result did not contain valid coordinates.') });
         return;
       }
 
       setMapTargetLocation({ lat, lng });
-      setSearchFeedback({ type: 'success', message: `Found: ${first.display_name}` });
+      setSearchFeedback({ type: 'success', message: `${t('Found:', 'Found:')} ${first.display_name}` });
     } catch {
-      setSearchFeedback({ type: 'error', message: 'Could not search this location right now. Please try again.' });
+      setSearchFeedback({ type: 'error', message: t('Could not search this location right now. Please try again.', 'Could not search this location right now. Please try again.') });
     } finally {
       setIsSearching(false);
     }
@@ -468,8 +472,8 @@ function FieldCreationPanel({ farm }) {
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleLocationSearch(); }}}
-            placeholder="Search by address or lat,lng (e.g., 52.2689, 10.5268)"
-            aria-label="Search location by address or coordinates"
+            placeholder={t('Search by address or lat,lng (e.g., 52.2689, 10.5268)', 'Search by address or lat,lng (e.g., 52.2689, 10.5268)')}
+            aria-label={t('Search location by address or coordinates', 'Search location by address or coordinates')}
           />
           <button
             type="button"
@@ -477,7 +481,7 @@ function FieldCreationPanel({ farm }) {
             onClick={handleLocationSearch}
             disabled={isSearching}
           >
-            {isSearching ? <LoaderCircle size={14} className="spin" /> : 'Find'}
+            {isSearching ? <LoaderCircle size={14} className="spin" /> : t('Find', 'Find')}
           </button>
         </div>
         
@@ -500,10 +504,10 @@ function FieldCreationPanel({ farm }) {
           />
 
           <LayersControl position="topleft">
-            <LayersControl.BaseLayer name="OpenStreetMap">
+            <LayersControl.BaseLayer name={t('OpenStreetMap', 'OpenStreetMap')}>
               <TileLayer attribution="&copy; OpenStreetMap contributors" url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
             </LayersControl.BaseLayer>
-            <LayersControl.BaseLayer checked name="Satellite (Esri)">
+            <LayersControl.BaseLayer checked name={t('Satellite (Esri)', 'Satellite (Esri)')}>
               <TileLayer attribution="Tiles &copy; Esri" url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}" />
             </LayersControl.BaseLayer>
           </LayersControl>
@@ -511,7 +515,7 @@ function FieldCreationPanel({ farm }) {
 
         {!isPanelOpen && (
           <div className="field-map-hint">
-            Use the polygon tool (top-right) to draw a field boundary, or click an existing field.
+            {t('Use the polygon tool (top-right) to draw a field boundary, or click an existing field.', 'Use the polygon tool (top-right) to draw a field boundary, or click an existing field.')}
           </div>
         )}
 
@@ -530,11 +534,11 @@ function FieldCreationPanel({ farm }) {
 
       <article className="panel field-list-panel">
         <div className="panel-header">
-          Saved Fields ({fields.length})
+          {t('Saved Fields', 'Saved Fields')} ({fields.length})
           {farm?.farmName && <span className="field-list-farm-name"> — {farm.farmName}</span>}
         </div>
         {fields.length === 0 ? (
-          <p className="empty-state">No fields saved yet. Draw a polygon on the map to start.</p>
+          <p className="empty-state">{t('No fields saved yet. Draw a polygon on the map to start.', 'No fields saved yet. Draw a polygon on the map to start.')}</p>
         ) : (
           <div className="field-list">
             {fields.map((f) => (
@@ -546,14 +550,14 @@ function FieldCreationPanel({ farm }) {
                 tabIndex={0}
                 onKeyDown={(e) => e.key === 'Enter' && handleFieldClick(f.id)}
               >
-                <div className="field-list-name">{f.fieldName || 'Unnamed'}</div>
+                <div className="field-list-name">{f.fieldName || t('Unnamed', 'Unnamed')}</div>
                 <div className="field-list-meta">
-                  {f.cropType && <span className="field-badge crop">{f.cropType}</span>}
-                  {f.soilType && <span className="field-badge soil">{f.soilType}</span>}
-                  {f.irrigated && <span className="field-badge irrigated">💧 Irrigated</span>}
+                  {f.cropType && <span className="field-badge crop">{t(f.cropType, f.cropType)}</span>}
+                  {f.soilType && <span className="field-badge soil">{t(f.soilType, f.soilType)}</span>}
+                  {f.irrigated && <span className="field-badge irrigated">💧 {t('Irrigated', 'Irrigated')}</span>}
                 </div>
                 <div className="field-list-stats">
-                  {f.areaHectares} ha · {f.perimeterKm} km · {f.borderPolygon.length} pts
+                  {f.areaHectares} {t('ha', 'ha')} · {f.perimeterKm} {t('km', 'km')} · {f.borderPolygon.length} {t('pts', 'pts')}
                 </div>
               </div>
             ))}

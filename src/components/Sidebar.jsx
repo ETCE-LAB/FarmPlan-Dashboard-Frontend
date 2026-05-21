@@ -1,7 +1,6 @@
 import { LayoutDashboard, Map as MapIcon, ClipboardList, Edit, Settings, Sprout, Rows3 } from 'lucide-react';
 import './Sidebar.css';
 import { useTranslation } from 'react-i18next';
- 
 
 function Sidebar({ activeTab, setActiveTab }) {
   const { t } = useTranslation();
@@ -42,7 +41,7 @@ function Sidebar({ activeTab, setActiveTab }) {
           <Edit size={18} /> {t('tabs.farm_edit', 'Farm Edit')}
         </div>
         <div className={`nav-item ${activeTab === 'plants' ? 'active' : ''}`} onClick={() => setActiveTab('plants')}>
-          <Sprout size={18} /> Treeline Plants
+          <Sprout size={18} /> {t('tabs.plants', 'Treeline Plants')}
         </div>
       </nav>
 

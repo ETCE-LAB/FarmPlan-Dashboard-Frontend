@@ -5,6 +5,7 @@ import 'leaflet/dist/leaflet.css';
 import '@geoman-io/leaflet-geoman-free';
 import '@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css';
 import './FarmEditPanel.css';
+import { useTranslation } from 'react-i18next';
 
 const INITIAL_CENTER = [52.2689, 10.5268];
 
@@ -67,6 +68,7 @@ function PolygonEditManager({ initialPolygon, onPolygonChange, resetToken, mapCo
   const polygonLayerRef = useRef(null);
   const initialPolygonAddedRef = useRef(false);
   const RecenterButtonAddedRef = useRef(false);
+  const { t } = useTranslation();
 
   // Expose centerOnPolygon function to parent
   useEffect(() => {
@@ -110,7 +112,7 @@ function PolygonEditManager({ initialPolygon, onPolygonChange, resetToken, mapCo
 
       onAdd: function(map) {
         const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
-        container.innerHTML = '<a href="#" title="Recenter on Polygon" style="font-size: 18px; text-decoration: none;">📍​</a>';
+        container.innerHTML = `<a href="#" title="${t('Recenter on Polygon', 'Recenter on Polygon')}" style="font-size: 18px; text-decoration: none;">📍​</a>`;
         
         L.DomEvent.on(container, 'click', function(e) {
           L.DomEvent.preventDefault(e);
@@ -209,7 +211,7 @@ function PolygonEditManager({ initialPolygon, onPolygonChange, resetToken, mapCo
       map.off('pm:remove', onRemove);
       map.pm.removeControls();
     };
-  }, [map, onPolygonChange, initialPolygon]);
+  }, [map, onPolygonChange, initialPolygon, t]);
 
   useEffect(() => {
     if (!polygonLayerRef.current) {
@@ -229,6 +231,7 @@ function FarmEditPanel({ farms, onUpdateFarm, onDeleteFarm }) {
   const [editData, setEditData] = useState({});
   const [polygonResetToken, setPolygonResetToken] = useState(0);
   const mapControlRef = useRef(null);
+  const { t } = useTranslation();
 
   const areaSquareMeters = useMemo(() => calculateAreaSquareMeters(editData.borderPolygon || []), [editData.borderPolygon]);
   const perimeterMeters = useMemo(() => calculatePerimeterMeters(editData.borderPolygon || []), [editData.borderPolygon]);
@@ -269,7 +272,7 @@ function FarmEditPanel({ farms, onUpdateFarm, onDeleteFarm }) {
   }, []);
 
   const handleDelete = (id) => {
-    if (window.confirm('Are you sure you want to delete this farm?')) {
+    if (window.confirm(t('Are you sure you want to delete this farm?', 'Are you sure you want to delete this farm?'))) {
       onDeleteFarm(id);
     }
   };
@@ -278,9 +281,9 @@ function FarmEditPanel({ farms, onUpdateFarm, onDeleteFarm }) {
     return (
       <section className="panel farm-edit-panel">
         <div className="panel-header">
-          <span>Farm Edit</span>
+          <span>{t('Farm Edit', 'Farm Edit')}</span>
         </div>
-        <p className="empty-state">No farms created yet. Go to Field Mapping to create one.</p>
+        <p className="empty-state">{t('No farms created yet. Go to Field Mapping to create one.', 'No farms created yet. Go to Field Mapping to create one.')}</p>
       </section>
     );
   }
@@ -288,7 +291,7 @@ function FarmEditPanel({ farms, onUpdateFarm, onDeleteFarm }) {
   return (
     <section className="panel farm-edit-panel">
       <div className="panel-header">
-        <span>Farm Edit ({farms.length})</span>
+        <span>{t('Farm Edit', 'Farm Edit')} ({farms.length})</span>
       </div>
 
       <div className="farm-edit-list">
@@ -299,7 +302,7 @@ function FarmEditPanel({ farms, onUpdateFarm, onDeleteFarm }) {
               <div className="farm-edit-form">
                 <div className="edit-form-grid">
                   <div className="form-section">
-                    <label>Farm Name</label>
+                    <label>{t('Farm Name', 'Farm Name')}</label>
                     <input
                       type="text"
                       name="farmName"
@@ -307,7 +310,7 @@ function FarmEditPanel({ farms, onUpdateFarm, onDeleteFarm }) {
                       onChange={handleInputChange}
                     />
 
-                    <label>Owner Name</label>
+                    <label>{t('Owner Name', 'Owner Name')}</label>
                     <input
                       type="text"
                       name="ownerName"
@@ -315,7 +318,7 @@ function FarmEditPanel({ farms, onUpdateFarm, onDeleteFarm }) {
                       onChange={handleInputChange}
                     />
 
-                    <label>Location</label>
+                    <label>{t('Location', 'Location')}</label>
                     <input
                       type="text"
                       name="location"
@@ -323,7 +326,7 @@ function FarmEditPanel({ farms, onUpdateFarm, onDeleteFarm }) {
                       onChange={handleInputChange}
                     />
 
-                    <label>Contact Email</label>
+                    <label>{t('Contact Email', 'Contact Email')}</label>
                     <input
                       type="email"
                       name="contactEmail"
@@ -331,7 +334,7 @@ function FarmEditPanel({ farms, onUpdateFarm, onDeleteFarm }) {
                       onChange={handleInputChange}
                     />
 
-                    <label>Notes</label>
+                    <label>{t('Notes', 'Notes')}</label>
                     <textarea
                       name="notes"
                       rows={3}
@@ -340,15 +343,15 @@ function FarmEditPanel({ farms, onUpdateFarm, onDeleteFarm }) {
                     />
 
                     <div className="polygon-metrics">
-                      <span>Points: {(editData.borderPolygon || []).length}</span>
-                      <span>Area: {(areaSquareMeters / 10000).toFixed(2)} ha</span>
-                      <span>Perimeter: {(perimeterMeters / 1000).toFixed(2)} km</span>
+                      <span>{t('Points', 'Points')}: {(editData.borderPolygon || []).length}</span>
+                      <span>{t('Area', 'Area')}: {(areaSquareMeters / 10000).toFixed(2)} {t('ha', 'ha')}</span>
+                      <span>{t('Perimeter', 'Perimeter')}: {(perimeterMeters / 1000).toFixed(2)} {t('km', 'km')}</span>
                     </div>
                   </div>
 
                   <div className="map-section">
                     <div className="map-header">
-                      <p className="map-help-text">Edit the polygon below to update your farm border</p>
+                      <p className="map-help-text">{t('Edit the polygon below to update your farm border', 'Edit the polygon below to update your farm border')}</p>
                     </div>
                     <MapContainer
                       className="edit-farm-map"
@@ -373,7 +376,7 @@ function FarmEditPanel({ farms, onUpdateFarm, onDeleteFarm }) {
                             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                           />
                         </LayersControl.BaseLayer>
-                        <LayersControl.BaseLayer name="Satellite (Esri World Imagery)">
+                        <LayersControl.BaseLayer name={t('Satellite (Esri World Imagery)', 'Satellite (Esri World Imagery)')}>
                           <TileLayer
                             attribution="Tiles &copy; Esri"
                             url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
@@ -386,10 +389,10 @@ function FarmEditPanel({ farms, onUpdateFarm, onDeleteFarm }) {
 
                 <div className="edit-actions">
                   <button className="primary-btn" onClick={handleSave}>
-                    Save Changes
+                    {t('Save Changes', 'Save Changes')}
                   </button>
                   <button className="secondary-btn" onClick={handleCancel}>
-                    Cancel
+                    {t('Cancel', 'Cancel')}
                   </button>
                 </div>
               </div>
@@ -399,24 +402,24 @@ function FarmEditPanel({ farms, onUpdateFarm, onDeleteFarm }) {
                 <div className="farm-info">
                   <h3>{farm.farmName}</h3>
                   <p>
-                    <strong>Owner:</strong> {farm.ownerName}
+                    <strong>{t('Owner', 'Owner')}:</strong> {farm.ownerName}
                   </p>
                   <p>
-                    <strong>Location:</strong> {farm.location}
+                    <strong>{t('Location', 'Location')}:</strong> {farm.location}
                   </p>
                   <p>
-                    <strong>Email:</strong> {farm.contactEmail}
+                    <strong>{t('Email', 'Email')}:</strong> {farm.contactEmail}
                   </p>
                   <small>
-                    {farm.areaHectares} ha | {farm.perimeterKm} km | {farm.borderPolygon.length} points
+                    {farm.areaHectares || 0} {t('ha', 'ha')} | {farm.perimeterKm || 0} {t('km', 'km')} | {farm.borderPolygon?.length || 0} {t('points', 'points')}
                   </small>
                 </div>
                 <div className="farm-actions">
                   <button className="primary-btn" onClick={() => handleEdit(farm)}>
-                    Edit
+                    {t('Edit', 'Edit')}
                   </button>
                   <button className="danger-btn" onClick={() => handleDelete(farm.id)}>
-                    Delete
+                    {t('Delete', 'Delete')}
                   </button>
                 </div>
               </div>
