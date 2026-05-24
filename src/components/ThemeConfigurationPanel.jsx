@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import './ThemeConfigurationPanel.css';
 
 const THEME_COLOR_FIELDS = [
@@ -24,29 +25,31 @@ const THEME_COLOR_FIELDS = [
 ];
 
 function ThemeConfigurationPanel({ theme, onModeChange, onColorChange, onResetTheme }) {
+  const { t } = useTranslation();
+
   return (
     <section className="theme-settings-wrap">
       <article className="panel">
         <div className="panel-header">
-          <span>Theme Controls (Prototype)</span>
+          <span>{t('Theme Controls (Prototype)')}</span>
         </div>
 
         <div className="theme-mode-row">
-          <p>Mode</p>
+          <p>{t('Mode')}</p>
           <div className="theme-mode-actions">
             <button
               type="button"
               className={`mode-btn ${theme.mode === 'light' ? 'active' : ''}`}
               onClick={() => onModeChange('light')}
             >
-              Light
+              {t('Light')}
             </button>
             <button
               type="button"
               className={`mode-btn ${theme.mode === 'dark' ? 'active' : ''}`}
               onClick={() => onModeChange('dark')}
             >
-              Dark
+              {t('Dark')}
             </button>
           </div>
         </div>
@@ -54,8 +57,8 @@ function ThemeConfigurationPanel({ theme, onModeChange, onColorChange, onResetTh
         <div className="theme-color-grid">
           {THEME_COLOR_FIELDS.map((field) => (
             <label key={field.key} className="theme-color-item" htmlFor={`theme-${field.key}`}>
-              <span className="theme-color-label">{field.label}</span>
-              <span className="theme-color-description">{field.description}</span>
+              <span className="theme-color-label">{t(field.label)}</span>
+              <span className="theme-color-description">{t(field.description)}</span>
               <div className="theme-color-input-row">
                 <input
                   id={`theme-${field.key}`}
@@ -71,7 +74,7 @@ function ThemeConfigurationPanel({ theme, onModeChange, onColorChange, onResetTh
 
         <div className="theme-footer-actions">
           <button type="button" className="theme-reset-btn" onClick={onResetTheme}>
-            Reset this mode
+            {t('Reset this mode')}
           </button>
         </div>
       </article>

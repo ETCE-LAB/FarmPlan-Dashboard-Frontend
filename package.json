@@ -11,7 +11,8 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "start": "vite"
+    "start": "vite",
+    "i18n": "i18next && node ./scripts/translate.js"
   },
   "dependencies": {
     "@babel/core": "^7.29.0",

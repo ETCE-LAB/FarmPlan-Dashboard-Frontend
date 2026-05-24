@@ -11,6 +11,7 @@ import '@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css';
 import FieldClimatePanel from './FieldClimatePanel';   // ← NEW
 import DragDropCrops from './DragDropCrops';
 import './FarmCreationPanel.css';
+import { useTranslation } from 'react-i18next'; // <-- Imported useTranslation
 
 const INITIAL_CENTER = [52.2689, 10.5268];
 const FARM_REQUIRED = ['farmName', 'ownerName', 'location', 'contactEmail'];
@@ -19,7 +20,6 @@ const SOIL_OPTIONS = [
   'Sandy', 'Sandy Loam', 'Loam', 'Clay Loam', 'Clay',
   'Silt', 'Silty Loam', 'Peaty', 'Chalky', 'Other',
 ];
-
 
 function toMeters(point, referenceLat) {
   const mPerDegLat = 111320;
@@ -285,6 +285,7 @@ function FieldDrawer({
   const onPolygonDrawnRef = useRef(onPolygonDrawn);
   const onPolygonEditedRef = useRef(onPolygonEdited);
   const onFieldClickRef = useRef(onFieldClick);
+  const { t } = useTranslation(); // <-- Imported useTranslation
 
   useEffect(() => { onPolygonDrawnRef.current = onPolygonDrawn; }, [onPolygonDrawn]);
   useEffect(() => { onPolygonEditedRef.current = onPolygonEdited; }, [onPolygonEdited]);
@@ -316,12 +317,12 @@ function FieldDrawer({
         if (existingLayer && map.hasLayer(existingLayer)) map.removeLayer(existingLayer);
         const layer = L.polygon(field.borderPolygon.map((p) => [p.lat, p.lng]), style).addTo(map);
         layer.on('click', () => onFieldClickRef.current(field.id));
-        layer.bindTooltip(field.fieldName || 'Unnamed field', { permanent: false, direction: 'center', className: 'field-tooltip' });
+        layer.bindTooltip(field.fieldName || t('Unnamed field', 'Unnamed field'), { permanent: false, direction: 'center', className: 'field-tooltip' });
         layerMapRef.current[field.id] = layer;
         if (isEditingShape) layer.pm.enable({ allowSelfIntersection: false });
       }
     }
-  }, [fields, selectedFieldId, editingShapeId, map]);
+  }, [fields, selectedFieldId, editingShapeId, map, t]);
 
   useEffect(() => {
     if (!editingShapeId) return;
@@ -374,6 +375,7 @@ function FieldPropertiesPanel({
       : { fieldName: '', cropType: '', soilType: '', irrigated: false, notes: '' }
   );
   const [errors, setErrors] = useState({});
+  const { t } = useTranslation(); // <-- Imported useTranslation
 
   useEffect(() => {
     if (existingField) {
@@ -389,8 +391,8 @@ function FieldPropertiesPanel({
 
   const validate = () => {
     const next = {};
-    if (!form.fieldName.trim()) next.fieldName = 'Field name is required.';
-    if (!form.cropType.trim()) next.cropType = 'Please select a crop type.';
+    if (!form.fieldName.trim()) next.fieldName = t('Field name is required.', 'Field name is required.');
+    if (!form.cropType.trim()) next.cropType = t('Please select a crop type.', 'Please select a crop type.');
     setErrors(next);
     return Object.keys(next).length === 0;
   };
@@ -411,32 +413,32 @@ function FieldPropertiesPanel({
         <div className="fpp-header-left">
           <div className="fpp-header-icon">🌿</div>
           <div>
-            <div className="fpp-title">{existingField ? 'Edit Field' : 'New Field'}</div>
-            {farmName && <div className="fpp-subtitle">in {farmName}</div>}
+            <div className="fpp-title">{existingField ? t('Edit Field', 'Edit Field') : t('New Field', 'New Field')}</div>
+            {farmName && <div className="fpp-subtitle">{t('in', 'in')} {farmName}</div>}
           </div>
         </div>
         <button className="fpp-close" type="button" onClick={onCancel}>✕</button>
       </div>
       <div className="fpp-metrics-bar">
-        <div className="fpp-metric"><Ruler size={13} /><span>{area.toFixed(2)} ha</span></div>
+        <div className="fpp-metric"><Ruler size={13} /><span>{area.toFixed(2)} {t('ha', 'ha')}</span></div>
         <div className="fpp-metric-divider" />
-        <div className="fpp-metric"><LocateFixed size={13} /><span>{perimeter.toFixed(2)} km</span></div>
+        <div className="fpp-metric"><LocateFixed size={13} /><span>{perimeter.toFixed(2)} {t('km', 'km')}</span></div>
         <div className="fpp-metric-divider" />
-        <div className="fpp-metric"><MapPin size={13} /><span>{polygon.length} pts</span></div>
+        <div className="fpp-metric"><MapPin size={13} /><span>{polygon.length} {t('pts', 'pts')}</span></div>
       </div>
       <div className="fpp-body">
         <div className="fpp-field-group">
-          <label className="fpp-label">Field Name <span className="fpp-req">*</span></label>
+          <label className="fpp-label">{t('Field Name', 'Field Name')} <span className="fpp-req">*</span></label>
           <input
             className={`fpp-input ${errors.fieldName ? 'fpp-input-error' : ''}`}
             value={form.fieldName}
             onChange={(e) => { setForm(p => ({ ...p, fieldName: e.target.value })); if (errors.fieldName) setErrors(p => ({ ...p, fieldName: undefined })); }}
-            placeholder="e.g., North Plot A"
+            placeholder={t('e.g., North Plot A', 'e.g., North Plot A')}
           />
           {errors.fieldName && <p className="fpp-error-msg">{errors.fieldName}</p>}
         </div>
         <div className="fpp-field-group">
-          <label className="fpp-label">Crop Type <span className="fpp-req">*</span></label>
+          <label className="fpp-label">{t('Crop Type', 'Crop Type')} <span className="fpp-req">*</span></label>
           <DragDropCrops
             selectedCropType={form.cropType}
             onSelectCropType={(cropName) => {
@@ -444,47 +446,47 @@ function FieldPropertiesPanel({
               if (errors.cropType) setErrors((prev) => ({ ...prev, cropType: undefined }));
             }}
           />
-          {cropDropFeedback && <p className="ddc-map-feedback">{cropDropFeedback}</p>}
+          {cropDropFeedback && <p className="ddc-map-feedback">{t(cropDropFeedback, cropDropFeedback)}</p>}
           {errors.cropType && <p className="fpp-error-msg">{errors.cropType}</p>}
         </div>
         {existingField?.soilType && (
   <div className="fpp-field-group">
-    <label className="fpp-label">Soil Type</label>
+    <label className="fpp-label">{t('Soil Type', 'Soil Type')}</label>
     <div className="fpp-input" style={{background:'#f8fafc', color:'#475569'}}>
-      🌱 {existingField.soilType} <span style={{fontSize:11, color:'#94a3b8'}}>(auto-detected)</span>
+      🌱 {t(existingField.soilType, existingField.soilType)} <span style={{fontSize:11, color:'#94a3b8'}}>({t('auto-detected', 'auto-detected')})</span>
     </div>
   </div>
 )}
         <div className="fpp-field-group">
-          <label className="fpp-label"><Droplets size={13} style={{ display: 'inline', marginRight: 4 }} />Irrigation</label>
+          <label className="fpp-label"><Droplets size={13} style={{ display: 'inline', marginRight: 4 }} />{t('Irrigation', 'Irrigation')}</label>
           <div className="fpp-toggle-row">
             <button type="button" className={`fpp-toggle-opt ${form.irrigated ? 'active' : ''}`} onClick={() => setForm(p => ({ ...p, irrigated: true }))}>
-              💧 Yes, irrigated
+              💧 {t('Yes, irrigated', 'Yes, irrigated')}
             </button>
             <button type="button" className={`fpp-toggle-opt ${!form.irrigated ? 'active' : ''}`} onClick={() => setForm(p => ({ ...p, irrigated: false }))}>
-              🌧 Rain-fed only
+              🌧 {t('Rain-fed only', 'Rain-fed only')}
             </button>
           </div>
         </div>
         <div className="fpp-field-group">
-          <label className="fpp-label">Notes</label>
+          <label className="fpp-label">{t('Notes', 'Notes')}</label>
           <textarea className="fpp-textarea" rows={3} value={form.notes}
             onChange={(e) => setForm(p => ({ ...p, notes: e.target.value }))}
-            placeholder="Soil tests, irrigation plan, observations…" />
+            placeholder={t('Soil tests, irrigation plan, observations…', 'Soil tests, irrigation plan, observations…')} />
         </div>
         {existingField && (
           <button type="button" className={`fp-edit-shape-btn ${isEditingShape ? 'active' : ''}`} onClick={() => onEditShape(existingField.id)}>
-            {isEditingShape ? '✓ Finish Reshaping' : '✏ Edit Shape on Map'}
+            {isEditingShape ? t('✓ Finish Reshaping', '✓ Finish Reshaping') : t('✏ Edit Shape on Map', '✏ Edit Shape on Map')}
           </button>
         )}
       </div>
       <div className="fpp-footer">
         {existingField && (
-          <button type="button" className="fpp-btn fpp-btn-danger" onClick={() => onDelete(existingField.id)}>Delete</button>
+          <button type="button" className="fpp-btn fpp-btn-danger" onClick={() => onDelete(existingField.id)}>{t('Delete', 'Delete')}</button>
         )}
-        <button type="button" className="fpp-btn fpp-btn-ghost" onClick={onCancel}>Cancel</button>
+        <button type="button" className="fpp-btn fpp-btn-ghost" onClick={onCancel}>{t('Cancel', 'Cancel')}</button>
         <button type="button" className="fpp-btn fpp-btn-primary" onClick={handleSave}>
-          <Wheat size={14} /> Save Field
+          <Wheat size={14} /> {t('Save Field', 'Save Field')}
         </button>
       </div>
     </aside>
@@ -509,6 +511,7 @@ function FarmCreationPanel({ onCreateFarm, farms, onUpdateFarm }) {
   const [searchInput, setSearchInput] = useState('');
   const [searchFeedback, setSearchFeedback] = useState({ type: '', message: '' });
   const [isSearching, setIsSearching] = useState(false);
+  const { t } = useTranslation(); // <-- Imported useTranslation
 
   useEffect(() => {
     if (selectedFarmId) setFormCollapsed(true);
@@ -529,8 +532,8 @@ function FarmCreationPanel({ onCreateFarm, farms, onUpdateFarm }) {
 
   const validateFarm = () => {
     const next = {};
-    FARM_REQUIRED.forEach((f) => { if (!formData[f].trim()) next[f] = 'This field is required.'; });
-    if (formData.contactEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.contactEmail)) next.contactEmail = 'Please provide a valid email address.';
+    FARM_REQUIRED.forEach((f) => { if (!formData[f].trim()) next[f] = t('This field is required.', 'This field is required.'); });
+    if (formData.contactEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.contactEmail)) next.contactEmail = t('Please provide a valid email address.', 'Please provide a valid email address.');
     setFormErrors(next);
     return Object.keys(next).length === 0;
   };
@@ -599,18 +602,18 @@ function FarmCreationPanel({ onCreateFarm, farms, onUpdateFarm }) {
 
   const handleCropDroppedOnMap = useCallback((crop, point) => {
     if (!selectedFarm) {
-      setCropDropFeedback('Select a farm first.');
+      setCropDropFeedback(t('Select a farm first.', 'Select a farm first.'));
       return;
     }
 
     const targetPolygon = draftFieldPolygon ?? selectedField?.borderPolygon ?? null;
     if (!targetPolygon || targetPolygon.length < 3) {
-      setCropDropFeedback('Draw or select a field polygon before dropping crops.');
+      setCropDropFeedback(t('Draw or select a field polygon before dropping crops.', 'Draw or select a field polygon before dropping crops.'));
       return;
     }
 
     if (!isPointInPolygon(point, targetPolygon)) {
-      setCropDropFeedback('Drop inside the active field polygon.');
+      setCropDropFeedback(t('Drop inside the active field polygon.', 'Drop inside the active field polygon.'));
       return;
     }
 
@@ -626,23 +629,23 @@ function FarmCreationPanel({ onCreateFarm, farms, onUpdateFarm }) {
 
     if (draftFieldPolygon) {
       if (hasSpacingOverlap(draftCropPlacements, point, spacingMeters)) {
-        setCropDropFeedback(`Cannot place ${crop.name}: minimum spacing overlaps another crop.`);
+        setCropDropFeedback(`${t('Cannot place', 'Cannot place')} ${t(crop.name, crop.name)}: ${t('minimum spacing overlaps another crop.', 'minimum spacing overlaps another crop.')}`);
         return;
       }
 
       setDraftCropPlacements((prev) => [...prev, placement]);
-      setCropDropFeedback(`Placed ${crop.name} on draft field.`);
+      setCropDropFeedback(`${t('Placed', 'Placed')} ${t(crop.name, crop.name)} ${t('on draft field.', 'on draft field.')}`);
       return;
     }
 
     if (!selectedFieldId) {
-      setCropDropFeedback('Select a field to place crops.');
+      setCropDropFeedback(t('Select a field to place crops.', 'Select a field to place crops.'));
       return;
     }
 
     const existingPlacements = selectedField?.cropPlacements || [];
     if (hasSpacingOverlap(existingPlacements, point, spacingMeters)) {
-      setCropDropFeedback(`Cannot place ${crop.name}: minimum spacing overlaps another crop.`);
+      setCropDropFeedback(`${t('Cannot place', 'Cannot place')} ${t(crop.name, crop.name)}: ${t('minimum spacing overlaps another crop.', 'minimum spacing overlaps another crop.')}`);
       return;
     }
 
@@ -656,8 +659,8 @@ function FarmCreationPanel({ onCreateFarm, farms, onUpdateFarm }) {
     });
 
     onUpdateFarm({ ...selectedFarm, fields: updatedFields });
-    setCropDropFeedback(`Placed ${crop.name} on ${selectedField?.fieldName || 'selected field'}.`);
-  }, [selectedFarm, draftFieldPolygon, selectedField, selectedFieldId, draftCropPlacements, onUpdateFarm]);
+    setCropDropFeedback(`${t('Placed', 'Placed')} ${t(crop.name, crop.name)} ${t('on', 'on')} ${selectedField?.fieldName || t('selected field', 'selected field')}.`);
+  }, [selectedFarm, draftFieldPolygon, selectedField, selectedFieldId, draftCropPlacements, onUpdateFarm, t]);
 
   const handleFieldSave = (fieldData) => {
     if (!selectedFarm) return;
@@ -689,19 +692,19 @@ function FarmCreationPanel({ onCreateFarm, farms, onUpdateFarm }) {
 
   const handleLocationSearch = async () => {
     const cleaned = searchInput.trim();
-    if (!cleaned) { setSearchFeedback({ type: 'error', message: 'Enter an address or coordinates.' }); return; }
+    if (!cleaned) { setSearchFeedback({ type: 'error', message: t('Enter an address or coordinates.', 'Enter an address or coordinates.') }); return; }
     const coords = parseCoordinates(cleaned);
-    if (coords) { setMapTargetLocation(coords); setSearchFeedback({ type: 'success', message: `Centered at ${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}.` }); return; }
+    if (coords) { setMapTargetLocation(coords); setSearchFeedback({ type: 'success', message: `${t('Centered at', 'Centered at')} ${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}.` }); return; }
     try {
       setIsSearching(true); setSearchFeedback({ type: '', message: '' });
       const r = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(cleaned)}`);
       if (!r.ok) throw new Error();
       const results = await r.json();
-      if (!results.length) { setSearchFeedback({ type: 'error', message: 'No matching place found.' }); return; }
+      if (!results.length) { setSearchFeedback({ type: 'error', message: t('No matching place found.', 'No matching place found.') }); return; }
       const { lat, lon, display_name } = results[0];
       setMapTargetLocation({ lat: Number(lat), lng: Number(lon) });
-      setSearchFeedback({ type: 'success', message: `Found: ${display_name}` });
-    } catch { setSearchFeedback({ type: 'error', message: 'Could not search right now.' }); }
+      setSearchFeedback({ type: 'success', message: `${t('Found:', 'Found:')} ${display_name}` });
+    } catch { setSearchFeedback({ type: 'error', message: t('Could not search right now.', 'Could not search right now.') }); }
     finally { setIsSearching(false); }
   };
 
@@ -709,29 +712,29 @@ function FarmCreationPanel({ onCreateFarm, farms, onUpdateFarm }) {
     <section className="farm-create-grid">
       <article className="panel farm-create-form-panel">
         <div className="panel-header" style={{ cursor: selectedFarm ? 'pointer' : 'default' }} onClick={() => selectedFarm && setFormCollapsed(c => !c)}>
-          <span>🌾 Register New Farm</span>
-          {selectedFarm && <span style={{ fontSize: 12, color: '#94a3b8', fontWeight: 400 }}>{formCollapsed ? '▼ show' : '▲ hide'}</span>}
+          <span>🌾 {t('Register New Farm', 'Register New Farm')}</span>
+          {selectedFarm && <span style={{ fontSize: 12, color: '#94a3b8', fontWeight: 400 }}>{formCollapsed ? `▼ ${t('show', 'show')}` : `▲ ${t('hide', 'hide')}`}</span>}
         </div>
 
         {!formCollapsed && (
           <form className="farm-form" onSubmit={handleFarmSubmit} noValidate>
-            <label htmlFor="farmName">Farm Name *</label>
-            <input id="farmName" name="farmName" value={formData.farmName} onChange={handleFarmChange} placeholder="e.g., Green Valley Farm" required />
+            <label htmlFor="farmName">{t('Farm Name', 'Farm Name')} *</label>
+            <input id="farmName" name="farmName" value={formData.farmName} onChange={handleFarmChange} placeholder={t('e.g., Green Valley Farm', 'e.g., Green Valley Farm')} required />
             {formErrors.farmName && <p className="error-text">{formErrors.farmName}</p>}
-            <label htmlFor="ownerName">Owner Name *</label>
-            <input id="ownerName" name="ownerName" value={formData.ownerName} onChange={handleFarmChange} placeholder="e.g., Max Mustermann" required />
+            <label htmlFor="ownerName">{t('Owner Name', 'Owner Name')} *</label>
+            <input id="ownerName" name="ownerName" value={formData.ownerName} onChange={handleFarmChange} placeholder={t('e.g., Max Mustermann', 'e.g., Max Mustermann')} required />
             {formErrors.ownerName && <p className="error-text">{formErrors.ownerName}</p>}
-            <label htmlFor="location">Location / Address *</label>
-            <input id="location" name="location" value={formData.location} onChange={handleFarmChange} placeholder="e.g., Wolfenbüttel, Lower Saxony" required />
+            <label htmlFor="location">{t('Location / Address', 'Location / Address')} *</label>
+            <input id="location" name="location" value={formData.location} onChange={handleFarmChange} placeholder={t('e.g., Wolfenbüttel, Lower Saxony', 'e.g., Wolfenbüttel, Lower Saxony')} required />
             {formErrors.location && <p className="error-text">{formErrors.location}</p>}
-            <label htmlFor="contactEmail">Contact Email *</label>
-            <input id="contactEmail" name="contactEmail" type="email" value={formData.contactEmail} onChange={handleFarmChange} placeholder="e.g., owner@farm.com" required />
+            <label htmlFor="contactEmail">{t('Contact Email', 'Contact Email')} *</label>
+            <input id="contactEmail" name="contactEmail" type="email" value={formData.contactEmail} onChange={handleFarmChange} placeholder={t('e.g., owner@farm.com', 'e.g., owner@farm.com')} required />
             {formErrors.contactEmail && <p className="error-text">{formErrors.contactEmail}</p>}
-            <label htmlFor="notes">Notes</label>
-            <textarea id="notes" name="notes" rows={3} value={formData.notes} onChange={handleFarmChange} placeholder="Optional details…" />
+            <label htmlFor="notes">{t('Notes', 'Notes')}</label>
+            <textarea id="notes" name="notes" rows={3} value={formData.notes} onChange={handleFarmChange} placeholder={t('Optional details…', 'Optional details…')} />
             <div className="form-actions">
-              <button type="button" className="secondary-btn" onClick={resetFarmForm}>Reset</button>
-              <button type="submit" className="primary-btn">Save Farm</button>
+              <button type="button" className="secondary-btn" onClick={resetFarmForm}>{t('Reset', 'Reset')}</button>
+              <button type="submit" className="primary-btn">{t('Save Farm', 'Save Farm')}</button>
             </div>
           </form>
         )}
@@ -745,23 +748,23 @@ function FarmCreationPanel({ onCreateFarm, farms, onUpdateFarm }) {
             </div>
             <div className="farm-detail-body">
               <div className="farm-detail-card">
-                <p className="farm-detail-meta"><strong>Owner</strong><span>{selectedFarm.ownerName}</span></p>
-                <p className="farm-detail-meta"><strong>Location</strong><span>{selectedFarm.location}</span></p>
-                <p className="farm-detail-meta"><strong>Email</strong><span>{selectedFarm.contactEmail}</span></p>
-                {selectedFarm.notes && <p className="farm-detail-meta"><strong>Notes</strong><span>{selectedFarm.notes}</span></p>}
+                <p className="farm-detail-meta"><strong>{t('Owner', 'Owner')}</strong><span>{selectedFarm.ownerName}</span></p>
+                <p className="farm-detail-meta"><strong>{t('Location', 'Location')}</strong><span>{selectedFarm.location}</span></p>
+                <p className="farm-detail-meta"><strong>{t('Email', 'Email')}</strong><span>{selectedFarm.contactEmail}</span></p>
+                {selectedFarm.notes && <p className="farm-detail-meta"><strong>{t('Notes', 'Notes')}</strong><span>{selectedFarm.notes}</span></p>}
               </div>
               <div className="farm-detail-divider" />
               <p className="farm-detail-hint">
                 <Layers size={13} style={{ display: 'inline', marginRight: 5 }} />
-                Use the polygon tool on the map to draw a field anywhere, then fill in its details.
+                {t('Use the polygon tool on the map to draw a field anywhere, then fill in its details.', 'Use the polygon tool on the map to draw a field anywhere, then fill in its details.')}
               </p>
               <div className="farm-fields-summary">
                 <div className="fields-count-header">
-                  <strong>Fields</strong>
+                  <strong>{t('Fields', 'Fields')}</strong>
                   <span className="fields-badge">{(selectedFarm.fields ?? []).length}</span>
                 </div>
                 {(selectedFarm.fields ?? []).length === 0 ? (
-                  <p className="empty-state">No fields yet — draw a polygon on the map.</p>
+                  <p className="empty-state">{t('No fields yet — draw a polygon on the map.', 'No fields yet — draw a polygon on the map.')}</p>
                 ) : (
                   <div className="field-list">
                     {(selectedFarm.fields ?? []).map((f) => (
@@ -772,7 +775,7 @@ function FarmCreationPanel({ onCreateFarm, farms, onUpdateFarm }) {
                         onKeyDown={(e) => e.key === 'Enter' && handleFieldClick(f.id)}
                       >
                         <div className="fli-top">
-                          <span className="fli-name fli-name-zoomable" title="Click to zoom to this field"
+                          <span className="fli-name fli-name-zoomable" title={t('Click to zoom to this field', 'Click to zoom to this field')}
                             onClick={(e) => {
                               e.stopPropagation();
                               if (f.borderPolygon?.length > 0) {
@@ -781,15 +784,15 @@ function FarmCreationPanel({ onCreateFarm, farms, onUpdateFarm }) {
                                 setFarmBoundsFields(null);
                               }
                             }}
-                          >{f.fieldName || 'Unnamed'}</span>
+                          >{f.fieldName || t('Unnamed', 'Unnamed')}</span>
                           <ChevronRight size={13} className="fli-arrow" />
                         </div>
                         <div className="fli-badges">
-                          {f.cropType && <span className="field-badge crop">{f.cropType}</span>}
-                          {f.soilType && <span className="field-badge soil">{f.soilType}</span>}
-                          {f.irrigated && <span className="field-badge irrigated">💧 Irrigated</span>}
+                          {f.cropType && <span className="field-badge crop">{t(f.cropType, f.cropType)}</span>}
+                          {f.soilType && <span className="field-badge soil">{t(f.soilType, f.soilType)}</span>}
+                          {f.irrigated && <span className="field-badge irrigated">💧 {t('Irrigated', 'Irrigated')}</span>}
                         </div>
-                        <div className="fli-stats">{f.areaHectares} ha · {f.perimeterKm} km</div>
+                        <div className="fli-stats">{f.areaHectares} {t('ha', 'ha')} · {f.perimeterKm} {t('km', 'km')}</div>
                       </div>
                     ))}
                   </div>
@@ -811,19 +814,19 @@ function FarmCreationPanel({ onCreateFarm, farms, onUpdateFarm }) {
         <div className="panel-header">
           <span>
             {selectedFarm
-              ? <><Layers size={15} style={{ display: 'inline', marginRight: 6 }} />Fields — {selectedFarm.farmName}</>
-              : <><MapPin size={15} style={{ display: 'inline', marginRight: 6 }} />Map</>}
+              ? <><Layers size={15} style={{ display: 'inline', marginRight: 6 }} />{t('Fields', 'Fields')} — {selectedFarm.farmName}</>
+              : <><MapPin size={15} style={{ display: 'inline', marginRight: 6 }} />{t('Map', 'Map')}</>}
           </span>
         </div>
         <p className={`map-help-text ${selectedFarm ? '' : 'map-help-neutral'}`}>
-          {selectedFarm ? 'Use the polygon tool to draw/select a field, then drag shrub crops from the panel and drop them inside that polygon.' : 'Select a farm from the list below to start adding fields.'}
+          {selectedFarm ? t('Use the polygon tool to draw/select a field, then drag shrub crops from the panel and drop them inside that polygon.', 'Use the polygon tool to draw/select a field, then drag shrub crops from the panel and drop them inside that polygon.') : t('Select a farm from the list below to start adding fields.', 'Select a farm from the list below to start adding fields.')}
         </p>
         <div className="location-search-row">
           <input type="text" value={searchInput} onChange={(e) => setSearchInput(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleLocationSearch(); } }}
-            placeholder="Search address or lat, lng…" aria-label="Search location" />
+            placeholder={t('Search address or lat, lng…', 'Search address or lat, lng…')} aria-label={t('Search location', 'Search location')} />
           <button type="button" className="secondary-btn" onClick={handleLocationSearch} disabled={isSearching}>
-            {isSearching ? <LoaderCircle size={14} className="spin" /> : 'Find'}
+            {isSearching ? <LoaderCircle size={14} className="spin" /> : t('Find', 'Find')}
           </button>
         </div>
         {searchFeedback.message && <p className={`location-search-feedback ${searchFeedback.type}`}>{searchFeedback.message}</p>}
@@ -843,10 +846,10 @@ function FarmCreationPanel({ onCreateFarm, farms, onUpdateFarm }) {
               onPolygonDrawn={handleFieldPolygonDrawn} onPolygonEdited={handleFieldPolygonEdited} onFieldClick={handleFieldClick} />
           )}
           <LayersControl position="topleft">
-            <LayersControl.BaseLayer checked name="OpenStreetMap">
+            <LayersControl.BaseLayer checked name={t('OpenStreetMap', 'OpenStreetMap')}>
               <TileLayer attribution='&copy; OpenStreetMap contributors' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
             </LayersControl.BaseLayer>
-            <LayersControl.BaseLayer name="Satellite (Esri)">
+            <LayersControl.BaseLayer name={t('Satellite (Esri)', 'Satellite (Esri)')}>
               <TileLayer attribution="Tiles &copy; Esri" url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}" />
             </LayersControl.BaseLayer>
           </LayersControl>
@@ -863,9 +866,9 @@ function FarmCreationPanel({ onCreateFarm, farms, onUpdateFarm }) {
       </article>
 
       <article className="panel farm-list-panel">
-        <div className="panel-header"><span>🏡 Saved Farms ({farms.length})</span></div>
+        <div className="panel-header"><span>🏡 {t('Saved Farms', 'Saved Farms')} ({farms.length})</span></div>
         {farms.length === 0 ? (
-          <p className="empty-state">No farms saved yet. Fill in the form above to register your first farm.</p>
+          <p className="empty-state">{t('No farms saved yet. Fill in the form above to register your first farm.', 'No farms saved yet. Fill in the form above to register your first farm.')}</p>
         ) : (
           <div className="farm-list">
             {farms.map((farm) => (
@@ -878,7 +881,7 @@ function FarmCreationPanel({ onCreateFarm, farms, onUpdateFarm }) {
               >
                 <div className="fli-top">
                   <span className="farm-list-name">{farm.farmName}</span>
-                  <span className="field-badge crop">{(farm.fields ?? []).length} field{(farm.fields ?? []).length !== 1 ? 's' : ''}</span>
+                  <span className="field-badge crop">{(farm.fields ?? []).length} {t('field', 'field')}{(farm.fields ?? []).length !== 1 ? t('s', 's') : ''}</span>
                 </div>
                 <p className="farm-list-loc">{farm.location}</p>
                 <small className="farm-list-stats">{farm.ownerName}</small>
@@ -887,7 +890,7 @@ function FarmCreationPanel({ onCreateFarm, farms, onUpdateFarm }) {
                   </div>
                 )}
                 {farm.id === selectedFarmId && (
-                  <div style={{ marginTop: 8, fontSize: 12, color: 'var(--farm-green-main)', fontWeight: 600 }}>✓ Selected — draw fields on the map</div>
+                  <div style={{ marginTop: 8, fontSize: 12, color: 'var(--farm-green-main)', fontWeight: 600 }}>✓ {t('Selected — draw fields on the map', 'Selected — draw fields on the map')}</div>
                 )}
               </div>
             ))}

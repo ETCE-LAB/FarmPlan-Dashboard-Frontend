@@ -56,15 +56,19 @@ function buildThemeVariables(theme) {
 }
 
 function App() {
-  const { t } = useTranslation();
+  // WE PULLED i18n OUT HERE SO REACT CAN LISTEN TO IT!
+  const { t, i18n } = useTranslation();
+  
   const [activeTab, setActiveTab] = useState('overview');
   const [farms, setFarms] = useState([]);
   const [theme, setTheme] = useState(LIGHT_THEME_DEFAULTS);
   
   // API State
   const [overviewData, setOverviewData] = useState({ stats: [], performance: [], meta: null });
-  const [tableData, setTableData] = useState({ records: [], options: { categories: [], strata: [] }, pagination: { page: 1, limit: 10, total: 0 } });
-  const [tableFilters, setTableFilters] = useState({ search: '', category: 'all', strata: 'all', page: 1, limit: 10 });
+  const [tableData, setTableData] = useState({ records: [], options: { categories: [], strata: [], hardinessZones: [] }, pagination: { page: 1, limit: 10, total: 0 } });
+  
+  const [tableFilters, setTableFilters] = useState({ search: '', category: 'all', strata: 'all', hardiness: 'all', page: 1, limit: 10 });
+  
   const [isOverviewLoading, setIsOverviewLoading] = useState(false);
   const [isTableLoading, setIsTableLoading] = useState(false);
   const [overviewError, setOverviewError] = useState('');
@@ -94,10 +98,28 @@ function App() {
     setIsTableLoading(true);
     try {
       const payload = await getTreelineRecords(filters);
-      setTableData(prev => ({ ...prev, records: payload.records || [], pagination: payload.pagination }));
+      setTableData(prev => ({ 
+        ...prev, 
+        records: payload.records || [], 
+        options: payload.options || { categories: [], strata: [], hardinessZones: [] },
+        pagination: payload.pagination 
+      }));
     } catch (e) { setTableError(e.message); }
     finally { setIsTableLoading(false); }
   }, []);
+
+  const handleForceReload = async () => {
+    setIsTableLoading(true);
+    try {
+      await importTreelineCsv(); 
+      await loadTableData(tableFilters); 
+      await loadOverviewData(); 
+    } catch (e) { 
+      setTableError(e.message); 
+    } finally { 
+      setIsTableLoading(false); 
+    }
+  };
 
   useEffect(() => { loadOverviewData(); }, [loadOverviewData]);
   useEffect(() => { loadTableData(tableFilters); }, [tableFilters, loadTableData]);
@@ -114,20 +136,22 @@ function App() {
 };
   const handleDeleteFarm = async (id) => await deleteDoc(doc(db, 'farms', id));
 
+  // I WRAPPED THESE TITLES SO THEY WILL TRANSLATE TOO!
   const getPageMeta = () => {
     switch (activeTab) {
-      case 'farm-create': return { title: 'Farm Setup', subtitle: 'Draw your farm border on the map.' };
-      case 'farm-edit': return { title: t('tabs.farm_edit', 'Farm Edit'), subtitle: 'Edit or delete existing farms.' };
-      case 'plants': return { title: 'Plants Inventory', subtitle: 'Search and browse plants.' };
-      case 'configuration': return { title: 'Settings', subtitle: 'Manage themes and preferences.' };
-      default: return { title: 'Project Overview', subtitle: 'Connected to Live Database' };
+      case 'farm-create': return { title: t('Farm Setup', 'Farm Setup'), subtitle: t('Draw your farm border on the map.', 'Draw your farm border on the map.') };
+      case 'farm-edit': return { title: t('tabs.farm_edit', 'Farm Edit'), subtitle: t('Edit or delete existing farms.', 'Edit or delete existing farms.') };
+      case 'plants': return { title: t('Plants Inventory', 'Plants Inventory'), subtitle: t('Search and browse plants.', 'Search and browse plants.') };
+      case 'configuration': return { title: t('Settings', 'Settings'), subtitle: t('Manage themes and preferences.', 'Manage themes and preferences.') };
+      default: return { title: t('Project Overview', 'Project Overview'), subtitle: t('Connected to Live Database', 'Connected to Live Database') };
     }
   };
 
   const meta = getPageMeta();
 
   return (
-    <div className={`layout theme-${theme.mode}`} style={themeVariables}>
+    // THE MAGIC KEY IS ADDED RIGHT HERE ON THIS DIV:
+    <div key={i18n.language} className={`layout theme-${theme.mode}`} style={themeVariables}>
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
       
       <main className="main-panel">
@@ -153,24 +177,30 @@ function App() {
           )}
 
           {activeTab === 'farm-create' && (
-  <FarmCreationPanel
-    onCreateFarm={handleCreateFarm}
-    farms={farms}
-    onUpdateFarm={handleUpdateFarm}
-  />
-)}
+            <FarmCreationPanel
+              onCreateFarm={handleCreateFarm}
+              farms={farms}
+              onUpdateFarm={handleUpdateFarm}
+            />
+          )}
 
           {activeTab === 'farm-edit' && (
             <FarmEditPanel farms={farms} onUpdateFarm={handleUpdateFarm} onDeleteFarm={handleDeleteFarm} />
           )}
 
           {activeTab === 'plants' && (
-            <PlantsPanel 
-              rows={tableData.records} 
-              filters={tableFilters} 
+            <PlantsPanel
+              rows={tableData.records}
+              filters={tableFilters}
+              options={tableData.options}
               pagination={tableData.pagination}
-              onSearch={(s) => setTableFilters(p => ({...p, search: s, page: 1}))}
-              onPageChange={(p) => setTableFilters(prev => ({...prev, page: p}))}
+              onSearch={(val) => setTableFilters(prev => ({ ...prev, search: val, page: 1 }))}
+              onCategoryChange={(val) => setTableFilters(prev => ({ ...prev, category: val, page: 1 }))}
+              onStrataChange={(val) => setTableFilters(prev => ({ ...prev, strata: val, page: 1 }))}
+              onHardinessChange={(val) => setTableFilters(prev => ({ ...prev, hardiness: val, page: 1 }))} 
+              onLimitChange={(val) => setTableFilters(prev => ({ ...prev, limit: val, page: 1 }))}
+              onPageChange={(val) => setTableFilters(prev => ({ ...prev, page: val }))}
+              onReload={handleForceReload} 
               isLoading={isTableLoading}
             />
           )}

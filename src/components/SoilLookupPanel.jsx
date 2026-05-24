@@ -110,7 +110,7 @@ function SoilLookupPanel({ farms = [] }) {
             ) : (
               farms.map((farm) => (
                 <option key={farm.id} value={farm.id}>
-                  {farm.farmName} ({farm.areaHectares} ha)
+                  {farm.farmName} ({farm.areaHectares} {t('ha')})
                 </option>
               ))
             )}

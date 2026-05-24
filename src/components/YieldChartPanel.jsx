@@ -15,7 +15,7 @@ function YieldChartPanel({ farms = [], data = [] }) {
 
   const chartData = isUsingFirebase 
     ? farms.map((farm) => ({
-        name: farm.farmName || 'Unnamed Farm',
+        name: farm.farmName || t('Unnamed Farm'),
         value: Number(farm.areaHectares) || 0
       }))
     : data.map((item) => ({
@@ -28,7 +28,7 @@ function YieldChartPanel({ farms = [], data = [] }) {
       <div className="panel-header">
         {isUsingFirebase 
           ? t('overview.chart.title', 'Farm Area Comparison (ha)') 
-          : 'Top Expected Calories By Plant'}
+          : t('Top Expected Calories By Plant')}
       </div>
       
       <div className="yield-chart-wrap" style={{ minHeight: '250px', width: '100%' }}>
@@ -62,8 +62,8 @@ function YieldChartPanel({ farms = [], data = [] }) {
                 }}
                 labelStyle={{ color: 'var(--text-main)', fontWeight: 'bold' }}
                 formatter={(val) => [
-                  isUsingFirebase ? `${val.toFixed(2)} ha` : val, 
-                  isUsingFirebase ? t('overview.chart.area', 'Area') : 'Value'
+                  isUsingFirebase ? `${val.toFixed(2)} ${t('ha')}` : val, 
+                  isUsingFirebase ? t('overview.chart.area', 'Area') : t('Value')
                 ]}
               />
               
