@@ -126,9 +126,10 @@ function App() {
 
   // --- HANDLERS ---
   const handleCreateFarm = async (newFarm) => {
-  const { id, ...data } = newFarm;
-  await addDoc(collection(db, 'farms'), { ...data, fields: [] });
-};
+    const { id, ...data } = newFarm;
+    const docRef = await addDoc(collection(db, 'farms'), { ...data, fields: [], recipe: null });
+    return docRef.id;
+  };
 
   const handleUpdateFarm = async (updatedFarm) => {
   const { id, ...data } = updatedFarm;

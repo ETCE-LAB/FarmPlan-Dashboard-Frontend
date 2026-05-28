@@ -30,13 +30,23 @@ function toCropRecord(row) {
   };
 }
 
-function DragDropCrops({ selectedCropType, onSelectCropType }) {
-  const [crops, setCrops] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+function DragDropCrops({ selectedCropType, onSelectCropType, crops: providedCrops, sourceLabel }) {
+  const hasProvidedCrops = providedCrops !== undefined;
+  const [crops, setCrops] = useState(providedCrops || []);
+  const [isLoading, setIsLoading] = useState(!hasProvidedCrops);
   const [error, setError] = useState('');
 
   useEffect(() => {
     let mounted = true;
+
+    if (hasProvidedCrops) {
+      setCrops(providedCrops || []);
+      setError('');
+      setIsLoading(false);
+      return () => {
+        mounted = false;
+      };
+    }
 
     async function loadShrubCrops() {
       setIsLoading(true);
@@ -57,7 +67,7 @@ function DragDropCrops({ selectedCropType, onSelectCropType }) {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [hasProvidedCrops, providedCrops]);
 
   const handleDragStart = (event, crop) => {
     if (onSelectCropType) onSelectCropType(crop.name);
@@ -90,7 +100,7 @@ function DragDropCrops({ selectedCropType, onSelectCropType }) {
       </div>
 
       <div className="ddc-footer">
-        <span>Drag a card onto the map inside the active field polygon.</span>
+        <span>{sourceLabel ? `Recipe plants for ${sourceLabel}.` : 'Drag a card onto the map inside the active field polygon.'}</span>
       </div>
     </div>
   );

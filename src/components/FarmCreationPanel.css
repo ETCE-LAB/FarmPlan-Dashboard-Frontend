@@ -372,6 +372,63 @@
   margin: 14px 0;
 }
 
+.recipe-choice-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 12px 0 8px;
+  padding: 14px;
+  border: 1px solid rgba(22, 163, 74, 0.18);
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(240, 253, 244, 0.92), rgba(255, 255, 255, 0.98));
+}
+
+.recipe-choice-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.recipe-choice-header strong {
+  font-size: 14px;
+  color: #14532d;
+}
+
+.recipe-choice-header span,
+.recipe-choice-note {
+  font-size: 12px;
+  color: #475569;
+  margin: 0;
+}
+
+.recipe-choice-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.recipe-choice-btn {
+  border: none;
+  border-radius: 999px;
+  padding: 9px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  color: #ffffff;
+  background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+  box-shadow: 0 2px 8px rgba(22, 163, 74, 0.2);
+}
+
+.recipe-choice-btn.secondary {
+  background: linear-gradient(135deg, #334155 0%, #1f2937 100%);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.18);
+}
+
+.recipe-choice-btn.active {
+  outline: 2px solid rgba(22, 163, 74, 0.25);
+  outline-offset: 2px;
+}
+
 .farm-detail-hint {
   font-size: 13px;
   color: #64748b;
