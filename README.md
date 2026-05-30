@@ -66,6 +66,7 @@ API endpoints:
 - `POST /api/treeline/import`
 - `GET /api/treeline/overview`
 - `GET /api/treeline/records?limit=50`
+- `POST /api/hardiness/field`
 
 On first overview request, Flask auto-imports `20260320_Neorx-treeline-planning.csv` if the collection is empty.
 
@@ -192,6 +193,37 @@ Proxy setup is in vite.config.js:
 
 - local route starts with /api/bgr
 - forwarded to https://services.bgr.de
+
+## Hardiness Zone API Notes
+
+Files:
+
+- src/utils/dashboardApi.js
+- src/components/FarmCreationPanel.jsx
+- src/components/FieldClimatePanel.jsx
+
+1. Gets Polygon from selected Field 
+2. Makes POST call to Backend API
+3. gets JSON respones and display in FieldClimatePanel
+
+Example: 
+
+```json
+{
+  "status": "ok",
+  "distribution": {
+    "7a": 38.01,
+    "7b": 61.99
+  },
+  "dominantZone": "7b",
+  "rawPixelCount": 3389,
+  "temperature": [
+    -15.0,
+    -12.2
+  ]
+}
+```
+LICENS NOTE: Regard DATALICENC&ATTRIBUTION.md for data usegage and licenc information. 
 
 ## Theme System Notes
 
