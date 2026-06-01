@@ -676,7 +676,7 @@ function FarmCreationPanel({ onCreateFarm, farms, onUpdateFarm }) {
         const field = selectedFarm.fields?.find((f) => f.id === nextId);
         if (field?.borderPolygon?.length > 0) {
           const center = getPolygonCenter(field.borderPolygon);
-          setFieldZoomTarget({ ...center, zoom: 18 });
+          setFieldZoomTarget({ ...center, zoom: 20 });
         } else setFieldZoomTarget(null);
       } else setFieldZoomTarget(null);
       return nextId;
@@ -931,7 +931,7 @@ function FarmCreationPanel({ onCreateFarm, farms, onUpdateFarm }) {
                               e.stopPropagation();
                               if (f.borderPolygon?.length > 0) {
                                 const bb = getBoundingBox([f]);
-                                setFieldZoomTarget({ lat: (bb.minLat + bb.maxLat) / 2, lng: (bb.minLng + bb.maxLng) / 2, zoom: 18 });
+                                setFieldZoomTarget({ lat: (bb.minLat + bb.maxLat) / 2, lng: (bb.minLng + bb.maxLng) / 2, zoom: 20 });
                                 setFarmBoundsFields(null);
                               }
                             }}
@@ -954,7 +954,7 @@ function FarmCreationPanel({ onCreateFarm, farms, onUpdateFarm }) {
               {selectedField && (
                 <FieldClimatePanel field={selectedField}
                 onSoilDetected={handleSoilDetected}
-                fieldHardninessData={fieldHardninessData}
+                fieldHardinessData={fieldHardninessData}
                 isLoadingHardiness={isLoadingHardiness}
                  />
               )}
@@ -981,7 +981,7 @@ function FarmCreationPanel({ onCreateFarm, farms, onUpdateFarm }) {
         </div>
         {searchFeedback.message && <p className={`location-search-feedback ${searchFeedback.type}`}>{searchFeedback.message}</p>}
 
-        <MapContainer className="farm-map" center={INITIAL_CENTER} zoom={13} scrollWheelZoom>
+        <MapContainer className="farm-map" center={INITIAL_CENTER} zoom={13} scrollWheelZoom maxZoom={22}>
           <MapNavigator targetLocation={mapTargetLocation} />
           <FieldZoomNavigator target={fieldZoomTarget} />
           <FarmBoundsZoomer fields={farmBoundsFields} />
@@ -995,14 +995,36 @@ function FarmCreationPanel({ onCreateFarm, farms, onUpdateFarm }) {
             <FieldDrawer fields={activeFields} selectedFieldId={selectedFieldId} editingShapeId={editingShapeId}
               onPolygonDrawn={handleFieldPolygonDrawn} onPolygonEdited={handleFieldPolygonEdited} onFieldClick={handleFieldClick} />
           )}
-          <LayersControl position="topleft">
-            <LayersControl.BaseLayer checked name={t('OpenStreetMap', 'OpenStreetMap')}>
-              <TileLayer attribution='&copy; OpenStreetMap contributors' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-            </LayersControl.BaseLayer>
-            <LayersControl.BaseLayer name={t('Satellite (Esri)', 'Satellite (Esri)')}>
-              <TileLayer attribution="Tiles &copy; Esri" url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}" />
-            </LayersControl.BaseLayer>
-          </LayersControl>
+<LayersControl position="topleft">
+  <LayersControl.BaseLayer name={t('OpenStreetMap', 'OpenStreetMap')}>
+    <TileLayer
+      attribution='&copy; OpenStreetMap contributors'
+      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+      maxZoom={19}
+    />
+  </LayersControl.BaseLayer>
+  <LayersControl.BaseLayer name={t('Satellite (Esri)', 'Satellite (Esri)')}>
+    <TileLayer
+      attribution="Tiles &copy; Esri"
+      url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+      maxZoom={19}
+    />
+  </LayersControl.BaseLayer>
+  <LayersControl.BaseLayer checked name={t('Satellite HD (Google)', 'Satellite HD (Google)')}>
+    <TileLayer
+      attribution="&copy; Google Maps"
+      url="https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}"
+      maxZoom={22}
+    />
+  </LayersControl.BaseLayer>
+  <LayersControl.BaseLayer name={t('Hybrid (Google)', 'Hybrid (Google)')}>
+    <TileLayer
+      attribution="&copy; Google Maps"
+      url="https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}"
+      maxZoom={22}
+    />
+  </LayersControl.BaseLayer>
+</LayersControl>
         </MapContainer>
 
         {isFieldPanelOpen && selectedFarm && (
