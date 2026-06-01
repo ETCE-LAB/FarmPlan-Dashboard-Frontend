@@ -3,7 +3,7 @@ import L from 'leaflet';
 import { MapContainer, TileLayer, LayersControl, useMap } from 'react-leaflet';
 import {
   LoaderCircle, MapPin, Layers, ChevronRight,
-  Wheat, Droplets, Ruler, LocateFixed,
+  Wheat, Droplets, Ruler, LocateFixed, Thermometer,
 } from 'lucide-react';
 import 'leaflet/dist/leaflet.css';
 import '@geoman-io/leaflet-geoman-free';
@@ -13,6 +13,7 @@ import DragDropCrops from './DragDropCrops';
 import Recipe from './Recipe';
 import './FarmCreationPanel.css';
 import { useTranslation } from 'react-i18next'; // <-- Imported useTranslation
+import { getFieldHardiness } from '../utils/dashboardApi';
 
 const INITIAL_CENTER = [52.2689, 10.5268];
 const FARM_REQUIRED = ['farmName', 'ownerName', 'location', 'contactEmail'];
@@ -574,6 +575,8 @@ function FarmCreationPanel({ onCreateFarm, farms, onUpdateFarm }) {
   const [searchInput, setSearchInput] = useState('');
   const [searchFeedback, setSearchFeedback] = useState({ type: '', message: '' });
   const [isSearching, setIsSearching] = useState(false);
+  const [fieldHardninessData, setFieldHardninessData] = useState(null);
+  const [isLoadingHardiness, setIsLoadingHardiness] = useState(false);
   const { t } = useTranslation(); // <-- Imported useTranslation
 
   useEffect(() => {
@@ -587,6 +590,47 @@ function FarmCreationPanel({ onCreateFarm, farms, onUpdateFarm }) {
   const isFieldPanelOpen = draftFieldPolygon !== null || selectedFieldId !== null;
   const activeFieldPoly  = draftFieldPolygon ?? selectedField?.borderPolygon ?? [];
   const activeFields     = selectedFarm?.fields ?? [];
+
+  const fetchFieldHardiness = useCallback(async (farm) => {
+    if (!farm?.fields || farm.fields.length === 0) {
+      setFieldHardninessData(null);
+      return;
+    }
+
+    // Collect all valid polygons from fields
+    const validPolygons = farm.fields
+      .filter((f) => f.borderPolygon && f.borderPolygon.length >= 3)
+      .map((f) => f.borderPolygon);
+
+    if (validPolygons.length === 0) {
+      setFieldHardninessData(null);
+      return;
+    }
+
+    try {
+      setIsLoadingHardiness(true);
+      // Use the first field's polygon for now, or combine them later
+      const polygon = validPolygons[0];
+      // Transform from [{lat, lng}, ...] to [[lat, lng], ...]
+      const polygonArray = polygon.map((point) => [point.lat, point.lng]);
+      const result = await getFieldHardiness(polygonArray);
+      console.log('Hardiness analysis result:', result);
+      setFieldHardninessData(result);
+    } catch (error) {
+      console.error('Error fetching hardiness data:', error);
+      setFieldHardninessData(null);
+    } finally {
+      setIsLoadingHardiness(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (selectedFarm) {
+      fetchFieldHardiness(selectedFarm);
+    } else {
+      setFieldHardninessData(null);
+    }
+  }, [selectedFarm, fetchFieldHardiness]);
 
   const handleFarmChange = (e) => {
     const { name, value } = e.target;
@@ -910,6 +954,8 @@ function FarmCreationPanel({ onCreateFarm, farms, onUpdateFarm }) {
               {selectedField && (
                 <FieldClimatePanel field={selectedField}
                 onSoilDetected={handleSoilDetected}
+                fieldHardninessData={fieldHardninessData}
+                isLoadingHardiness={isLoadingHardiness}
                  />
               )}
             </div>
