@@ -52,3 +52,10 @@ export async function getShrubStrataCrops(limit = 6) {
 
   return (payload?.records || []).slice(0, safeLimit);
 }
+
+export async function getFieldHardiness(polygon) {
+  return requestJson('/hardiness/field', {
+    method: 'POST',
+    body: JSON.stringify({ polygon }),
+  });
+}

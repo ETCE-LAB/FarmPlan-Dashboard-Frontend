@@ -3,15 +3,17 @@ import L from 'leaflet';
 import { MapContainer, TileLayer, LayersControl, useMap } from 'react-leaflet';
 import {
   LoaderCircle, MapPin, Layers, ChevronRight,
-  Wheat, Droplets, Ruler, LocateFixed,
+  Wheat, Droplets, Ruler, LocateFixed, Thermometer,
 } from 'lucide-react';
 import 'leaflet/dist/leaflet.css';
 import '@geoman-io/leaflet-geoman-free';
 import '@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css';
 import FieldClimatePanel from './FieldClimatePanel';   // ← NEW
 import DragDropCrops from './DragDropCrops';
+import Recipe from './Recipe';
 import './FarmCreationPanel.css';
 import { useTranslation } from 'react-i18next'; // <-- Imported useTranslation
+import { getFieldHardiness } from '../utils/dashboardApi';
 
 const INITIAL_CENTER = [52.2689, 10.5268];
 const FARM_REQUIRED = ['farmName', 'ownerName', 'location', 'contactEmail'];
@@ -110,6 +112,44 @@ function hasSpacingOverlap(placements, targetPoint, targetSpacingMeters) {
     );
     return distanceM < (placement.minimumSpacingMeters || 0) + targetSpacingMeters;
   });
+}
+
+function offsetPointByMeters(point, eastMeters, northMeters) {
+  const mPerDegLat = 111320;
+  const mPerDegLng = Math.cos((point.lat * Math.PI) / 180) * 111320 || 1;
+
+  return {
+    lat: point.lat + (northMeters / mPerDegLat),
+    lng: point.lng + (eastMeters / mPerDegLng),
+  };
+}
+
+function findAutoSpacedPoint(targetPoint, polygon, placements, spacingMeters) {
+  if (!targetPoint || !polygon || polygon.length < 3) return null;
+  if (isPointInPolygon(targetPoint, polygon) && !hasSpacingOverlap(placements, targetPoint, spacingMeters)) {
+    return targetPoint;
+  }
+
+  const step = Math.max(spacingMeters / 2, 1);
+  const maxRadius = Math.max(spacingMeters * 8, 20);
+  const directions = 16;
+
+  for (let radius = step; radius <= maxRadius; radius += step) {
+    for (let index = 0; index < directions; index += 1) {
+      const angle = (Math.PI * 2 * index) / directions;
+      const candidate = offsetPointByMeters(
+        targetPoint,
+        Math.cos(angle) * radius,
+        Math.sin(angle) * radius,
+      );
+
+      if (!isPointInPolygon(candidate, polygon)) continue;
+      if (hasSpacingOverlap(placements, candidate, spacingMeters)) continue;
+      return candidate;
+    }
+  }
+
+  return null;
 }
 
 function MapNavigator({ targetLocation }) {
@@ -368,20 +408,21 @@ function FieldDrawer({
 function FieldPropertiesPanel({
   polygon, existingField, onSave, onCancel, onDelete,
   farmName, onEditShape, isEditingShape, cropDropFeedback,
+  recipePlants, recipeSourceLabel,
 }) {
   const [form, setForm] = useState(
     existingField
-      ? { fieldName: existingField.fieldName, cropType: existingField.cropType, soilType: existingField.soilType, irrigated: existingField.irrigated, notes: existingField.notes }
-      : { fieldName: '', cropType: '', soilType: '', irrigated: false, notes: '' }
+      ? { fieldName: existingField.fieldName, cropType: existingField.cropType, soilType: existingField.soilType, irrigated: existingField.irrigated, notes: existingField.notes, autoSpacingEnabled: Boolean(existingField.autoSpacingEnabled) }
+      : { fieldName: '', cropType: '', soilType: '', irrigated: false, notes: '', autoSpacingEnabled: true }
   );
   const [errors, setErrors] = useState({});
   const { t } = useTranslation(); // <-- Imported useTranslation
 
   useEffect(() => {
     if (existingField) {
-      setForm({ fieldName: existingField.fieldName, cropType: existingField.cropType, soilType: existingField.soilType, irrigated: existingField.irrigated, notes: existingField.notes });
+      setForm({ fieldName: existingField.fieldName, cropType: existingField.cropType, soilType: existingField.soilType, irrigated: existingField.irrigated, notes: existingField.notes, autoSpacingEnabled: Boolean(existingField.autoSpacingEnabled) });
     } else {
-      setForm({ fieldName: '', cropType: '', soilType: '', irrigated: false, notes: '' });
+      setForm({ fieldName: '', cropType: '', soilType: '', irrigated: false, notes: '', autoSpacingEnabled: true });
     }
     setErrors({});
   }, [existingField]);
@@ -441,6 +482,8 @@ function FieldPropertiesPanel({
           <label className="fpp-label">{t('Crop Type', 'Crop Type')} <span className="fpp-req">*</span></label>
           <DragDropCrops
             selectedCropType={form.cropType}
+            crops={recipePlants}
+            sourceLabel={recipeSourceLabel}
             onSelectCropType={(cropName) => {
               setForm((prev) => ({ ...prev, cropType: cropName }));
               if (errors.cropType) setErrors((prev) => ({ ...prev, cropType: undefined }));
@@ -467,6 +510,26 @@ function FieldPropertiesPanel({
               🌧 {t('Rain-fed only', 'Rain-fed only')}
             </button>
           </div>
+        </div>
+        <div className="fpp-field-group">
+          <label className="fpp-label">{t('Auto spacing', 'Auto spacing')}</label>
+          <div className="fpp-toggle-row">
+            <button
+              type="button"
+              className={`fpp-toggle-opt ${form.autoSpacingEnabled ? 'active' : ''}`}
+              onClick={() => setForm((p) => ({ ...p, autoSpacingEnabled: true }))}
+            >
+              {t('On', 'On')}
+            </button>
+            <button
+              type="button"
+              className={`fpp-toggle-opt ${!form.autoSpacingEnabled ? 'active' : ''}`}
+              onClick={() => setForm((p) => ({ ...p, autoSpacingEnabled: false }))}
+            >
+              {t('Off', 'Off')}
+            </button>
+          </div>
+         
         </div>
         <div className="fpp-field-group">
           <label className="fpp-label">{t('Notes', 'Notes')}</label>
@@ -505,12 +568,15 @@ function FarmCreationPanel({ onCreateFarm, farms, onUpdateFarm }) {
   const [draftFieldPolygon, setDraftFieldPolygon] = useState(null);
   const [draftCropPlacements, setDraftCropPlacements] = useState([]);
   const [cropDropFeedback, setCropDropFeedback] = useState('');
+  const [recipeDialogMode, setRecipeDialogMode] = useState(null);
   const [farmBoundsFields, setFarmBoundsFields] = useState(null);
   const [mapTargetLocation, setMapTargetLocation] = useState(null);
   const [fieldZoomTarget, setFieldZoomTarget] = useState(null);
   const [searchInput, setSearchInput] = useState('');
   const [searchFeedback, setSearchFeedback] = useState({ type: '', message: '' });
   const [isSearching, setIsSearching] = useState(false);
+  const [fieldHardninessData, setFieldHardninessData] = useState(null);
+  const [isLoadingHardiness, setIsLoadingHardiness] = useState(false);
   const { t } = useTranslation(); // <-- Imported useTranslation
 
   useEffect(() => {
@@ -520,9 +586,51 @@ function FarmCreationPanel({ onCreateFarm, farms, onUpdateFarm }) {
 
   const selectedFarm  = farms.find((f) => f.id === selectedFarmId) ?? null;
   const selectedField = selectedFarm?.fields?.find((f) => f.id === selectedFieldId) ?? null;
+  const recipePlants = selectedFarm?.recipe?.plants ?? [];
   const isFieldPanelOpen = draftFieldPolygon !== null || selectedFieldId !== null;
   const activeFieldPoly  = draftFieldPolygon ?? selectedField?.borderPolygon ?? [];
   const activeFields     = selectedFarm?.fields ?? [];
+
+  const fetchFieldHardiness = useCallback(async (farm) => {
+    if (!farm?.fields || farm.fields.length === 0) {
+      setFieldHardninessData(null);
+      return;
+    }
+
+    // Collect all valid polygons from fields
+    const validPolygons = farm.fields
+      .filter((f) => f.borderPolygon && f.borderPolygon.length >= 3)
+      .map((f) => f.borderPolygon);
+
+    if (validPolygons.length === 0) {
+      setFieldHardninessData(null);
+      return;
+    }
+
+    try {
+      setIsLoadingHardiness(true);
+      // Use the first field's polygon for now, or combine them later
+      const polygon = validPolygons[0];
+      // Transform from [{lat, lng}, ...] to [[lat, lng], ...]
+      const polygonArray = polygon.map((point) => [point.lat, point.lng]);
+      const result = await getFieldHardiness(polygonArray);
+      console.log('Hardiness analysis result:', result);
+      setFieldHardninessData(result);
+    } catch (error) {
+      console.error('Error fetching hardiness data:', error);
+      setFieldHardninessData(null);
+    } finally {
+      setIsLoadingHardiness(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (selectedFarm) {
+      fetchFieldHardiness(selectedFarm);
+    } else {
+      setFieldHardninessData(null);
+    }
+  }, [selectedFarm, fetchFieldHardiness]);
 
   const handleFarmChange = (e) => {
     const { name, value } = e.target;
@@ -540,11 +648,12 @@ function FarmCreationPanel({ onCreateFarm, farms, onUpdateFarm }) {
 
   const resetFarmForm = () => { setFormData({ farmName: '', ownerName: '', location: '', contactEmail: '', notes: '' }); setFormErrors({}); };
 
-  const handleFarmSubmit = (e) => {
+  const handleFarmSubmit = async (e) => {
     e.preventDefault();
     if (!validateFarm()) return;
-    onCreateFarm({ id: Date.now(), ...formData, createdAt: new Date().toISOString(), fields: [] });
+    const createdFarmId = await onCreateFarm({ id: Date.now(), ...formData, createdAt: new Date().toISOString(), fields: [], recipe: null });
     resetFarmForm();
+    if (createdFarmId) setSelectedFarmId(createdFarmId);
   };
 
   const handleFarmSelect = useCallback((id) => {
@@ -567,12 +676,15 @@ function FarmCreationPanel({ onCreateFarm, farms, onUpdateFarm }) {
         const field = selectedFarm.fields?.find((f) => f.id === nextId);
         if (field?.borderPolygon?.length > 0) {
           const center = getPolygonCenter(field.borderPolygon);
-          setFieldZoomTarget({ ...center, zoom: 18 });
-        }
+          setFieldZoomTarget({ ...center, zoom: 20 });
+        } else setFieldZoomTarget(null);
       } else setFieldZoomTarget(null);
       return nextId;
     });
-    setDraftFieldPolygon(null); setDraftCropPlacements([]); setEditingShapeId(null); setCropDropFeedback('');
+    setDraftFieldPolygon(null);
+    setDraftCropPlacements([]);
+    setEditingShapeId(null);
+    setCropDropFeedback('');
   }, [selectedFarm]);
 
   const handleFieldPolygonDrawn = useCallback((coords) => {
@@ -608,12 +720,13 @@ function FarmCreationPanel({ onCreateFarm, farms, onUpdateFarm }) {
 
     const targetPolygon = draftFieldPolygon ?? selectedField?.borderPolygon ?? null;
     if (!targetPolygon || targetPolygon.length < 3) {
+    const autoSpacingEnabled = Boolean(selectedField?.autoSpacingEnabled);
       setCropDropFeedback(t('Draw or select a field polygon before dropping crops.', 'Draw or select a field polygon before dropping crops.'));
       return;
     }
 
     if (!isPointInPolygon(point, targetPolygon)) {
-      setCropDropFeedback(t('Drop inside the active field polygon.', 'Drop inside the active field polygon.'));
+      setCropDropFeedback(t());
       return;
     }
 
@@ -644,7 +757,16 @@ function FarmCreationPanel({ onCreateFarm, farms, onUpdateFarm }) {
     }
 
     const existingPlacements = selectedField?.cropPlacements || [];
-    if (hasSpacingOverlap(existingPlacements, point, spacingMeters)) {
+    let placementPoint = point;
+
+    if (autoSpacingEnabled) {
+      const spacedPoint = findAutoSpacedPoint(point, selectedField?.borderPolygon ?? targetPolygon, existingPlacements, spacingMeters);
+      if (!spacedPoint) {
+        setCropDropFeedback(`${t('Cannot auto-space', 'Cannot auto-space')} ${t(crop.name, crop.name)}: ${t('no valid location was found inside this field.', 'no valid location was found inside this field.')}`);
+        return;
+      }
+      placementPoint = spacedPoint;
+    } else if (hasSpacingOverlap(existingPlacements, point, spacingMeters)) {
       setCropDropFeedback(`${t('Cannot place', 'Cannot place')} ${t(crop.name, crop.name)}: ${t('minimum spacing overlaps another crop.', 'minimum spacing overlaps another crop.')}`);
       return;
     }
@@ -654,12 +776,18 @@ function FarmCreationPanel({ onCreateFarm, farms, onUpdateFarm }) {
       return {
         ...field,
         cropType: crop.name,
-        cropPlacements: [...existingPlacements, placement],
+        cropPlacements: [...existingPlacements, {
+          ...placement,
+          lat: Number(placementPoint.lat.toFixed(7)),
+          lng: Number(placementPoint.lng.toFixed(7)),
+        }],
       };
     });
 
     onUpdateFarm({ ...selectedFarm, fields: updatedFields });
-    setCropDropFeedback(`${t('Placed', 'Placed')} ${t(crop.name, crop.name)} ${t('on', 'on')} ${selectedField?.fieldName || t('selected field', 'selected field')}.`);
+    setCropDropFeedback(autoSpacingEnabled && (placementPoint.lat !== point.lat || placementPoint.lng !== point.lng)
+      ? `${t('Auto-spaced', 'Auto-spaced')} ${t(crop.name, crop.name)} ${t('on', 'on')} ${selectedField?.fieldName || t('selected field', 'selected field')}.`
+      : `${t('Placed', 'Placed')} ${t(crop.name, crop.name)} ${t('on', 'on')} ${selectedField?.fieldName || t('selected field', 'selected field')}.`);
   }, [selectedFarm, draftFieldPolygon, selectedField, selectedFieldId, draftCropPlacements, onUpdateFarm, t]);
 
   const handleFieldSave = (fieldData) => {
@@ -689,6 +817,17 @@ function FarmCreationPanel({ onCreateFarm, farms, onUpdateFarm }) {
   };
 
   const handleFieldCancel = () => { setDraftFieldPolygon(null); setDraftCropPlacements([]); setSelectedFieldId(null); setEditingShapeId(null); setCropDropFeedback(''); };
+
+  const handleOpenRecipeDialog = (mode) => {
+    if (!selectedFarm) return;
+    setRecipeDialogMode(mode);
+  };
+
+  const handleSaveRecipe = (recipe) => {
+    if (!selectedFarm) return;
+    onUpdateFarm({ ...selectedFarm, recipe });
+    setRecipeDialogMode(null);
+  };
 
   const handleLocationSearch = async () => {
     const cleaned = searchInput.trim();
@@ -754,10 +893,22 @@ function FarmCreationPanel({ onCreateFarm, farms, onUpdateFarm }) {
                 {selectedFarm.notes && <p className="farm-detail-meta"><strong>{t('Notes', 'Notes')}</strong><span>{selectedFarm.notes}</span></p>}
               </div>
               <div className="farm-detail-divider" />
-              <p className="farm-detail-hint">
-                <Layers size={13} style={{ display: 'inline', marginRight: 5 }} />
-                {t('Use the polygon tool on the map to draw a field anywhere, then fill in its details.', 'Use the polygon tool on the map to draw a field anywhere, then fill in its details.')}
-              </p>
+              <div className="recipe-choice-panel">
+                <div className="recipe-choice-header">
+                  <strong>{t('Recipe setup', 'Recipe setup')}</strong>
+                  <span>{selectedFarm.recipe ? t('A recipe already exists for this farm.', 'A recipe already exists for this farm.') : t('Create a recipe to define which plants can be dragged into this farm.', 'Create a recipe to define which plants can be dragged into this farm.')}</span>
+                </div>
+                <div className="recipe-choice-actions">
+                  <button type="button" className="recipe-choice-btn" onClick={() => handleOpenRecipeDialog('create')}>
+                    {t('Create new recipe', 'Create new recipe')}
+                  </button>
+                  {selectedFarm.recipe && (
+                    <button type="button" className="recipe-choice-btn secondary" onClick={() => handleOpenRecipeDialog('edit')}>
+                      {t('Edit recipe', 'Edit recipe')}
+                    </button>
+                  )}
+                </div>
+              </div>
               <div className="farm-fields-summary">
                 <div className="fields-count-header">
                   <strong>{t('Fields', 'Fields')}</strong>
@@ -780,7 +931,7 @@ function FarmCreationPanel({ onCreateFarm, farms, onUpdateFarm }) {
                               e.stopPropagation();
                               if (f.borderPolygon?.length > 0) {
                                 const bb = getBoundingBox([f]);
-                                setFieldZoomTarget({ lat: (bb.minLat + bb.maxLat) / 2, lng: (bb.minLng + bb.maxLng) / 2, zoom: 18 });
+                                setFieldZoomTarget({ lat: (bb.minLat + bb.maxLat) / 2, lng: (bb.minLng + bb.maxLng) / 2, zoom: 20 });
                                 setFarmBoundsFields(null);
                               }
                             }}
@@ -803,6 +954,8 @@ function FarmCreationPanel({ onCreateFarm, farms, onUpdateFarm }) {
               {selectedField && (
                 <FieldClimatePanel field={selectedField}
                 onSoilDetected={handleSoilDetected}
+                fieldHardinessData={fieldHardninessData}
+                isLoadingHardiness={isLoadingHardiness}
                  />
               )}
             </div>
@@ -818,9 +971,6 @@ function FarmCreationPanel({ onCreateFarm, farms, onUpdateFarm }) {
               : <><MapPin size={15} style={{ display: 'inline', marginRight: 6 }} />{t('Map', 'Map')}</>}
           </span>
         </div>
-        <p className={`map-help-text ${selectedFarm ? '' : 'map-help-neutral'}`}>
-          {selectedFarm ? t('Use the polygon tool to draw/select a field, then drag shrub crops from the panel and drop them inside that polygon.', 'Use the polygon tool to draw/select a field, then drag shrub crops from the panel and drop them inside that polygon.') : t('Select a farm from the list below to start adding fields.', 'Select a farm from the list below to start adding fields.')}
-        </p>
         <div className="location-search-row">
           <input type="text" value={searchInput} onChange={(e) => setSearchInput(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleLocationSearch(); } }}
@@ -831,7 +981,7 @@ function FarmCreationPanel({ onCreateFarm, farms, onUpdateFarm }) {
         </div>
         {searchFeedback.message && <p className={`location-search-feedback ${searchFeedback.type}`}>{searchFeedback.message}</p>}
 
-        <MapContainer className="farm-map" center={INITIAL_CENTER} zoom={13} scrollWheelZoom>
+        <MapContainer className="farm-map" center={INITIAL_CENTER} zoom={13} scrollWheelZoom maxZoom={22}>
           <MapNavigator targetLocation={mapTargetLocation} />
           <FieldZoomNavigator target={fieldZoomTarget} />
           <FarmBoundsZoomer fields={farmBoundsFields} />
@@ -845,14 +995,36 @@ function FarmCreationPanel({ onCreateFarm, farms, onUpdateFarm }) {
             <FieldDrawer fields={activeFields} selectedFieldId={selectedFieldId} editingShapeId={editingShapeId}
               onPolygonDrawn={handleFieldPolygonDrawn} onPolygonEdited={handleFieldPolygonEdited} onFieldClick={handleFieldClick} />
           )}
-          <LayersControl position="topleft">
-            <LayersControl.BaseLayer checked name={t('OpenStreetMap', 'OpenStreetMap')}>
-              <TileLayer attribution='&copy; OpenStreetMap contributors' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-            </LayersControl.BaseLayer>
-            <LayersControl.BaseLayer name={t('Satellite (Esri)', 'Satellite (Esri)')}>
-              <TileLayer attribution="Tiles &copy; Esri" url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}" />
-            </LayersControl.BaseLayer>
-          </LayersControl>
+<LayersControl position="topleft">
+  <LayersControl.BaseLayer name={t('OpenStreetMap', 'OpenStreetMap')}>
+    <TileLayer
+      attribution='&copy; OpenStreetMap contributors'
+      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+      maxZoom={19}
+    />
+  </LayersControl.BaseLayer>
+  <LayersControl.BaseLayer name={t('Satellite (Esri)', 'Satellite (Esri)')}>
+    <TileLayer
+      attribution="Tiles &copy; Esri"
+      url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+      maxZoom={19}
+    />
+  </LayersControl.BaseLayer>
+  <LayersControl.BaseLayer checked name={t('Satellite HD (Google)', 'Satellite HD (Google)')}>
+    <TileLayer
+      attribution="&copy; Google Maps"
+      url="https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}"
+      maxZoom={22}
+    />
+  </LayersControl.BaseLayer>
+  <LayersControl.BaseLayer name={t('Hybrid (Google)', 'Hybrid (Google)')}>
+    <TileLayer
+      attribution="&copy; Google Maps"
+      url="https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}"
+      maxZoom={22}
+    />
+  </LayersControl.BaseLayer>
+</LayersControl>
         </MapContainer>
 
         {isFieldPanelOpen && selectedFarm && (
@@ -861,6 +1033,19 @@ function FarmCreationPanel({ onCreateFarm, farms, onUpdateFarm }) {
             farmName={selectedFarm.farmName} onEditShape={handleEditShape}
             isEditingShape={editingShapeId === selectedFieldId}
             cropDropFeedback={cropDropFeedback}
+            recipePlants={recipePlants}
+            recipeSourceLabel={selectedFarm?.recipe ? (selectedFarm.recipe.name || selectedFarm.farmName || '') : undefined}
+          />
+        )}
+
+        {selectedFarm && recipeDialogMode && (
+          <Recipe
+            open
+            mode={recipeDialogMode}
+            farmName={selectedFarm.farmName}
+            initialRecipe={selectedFarm.recipe}
+            onClose={() => setRecipeDialogMode(null)}
+            onSave={handleSaveRecipe}
           />
         )}
       </article>
