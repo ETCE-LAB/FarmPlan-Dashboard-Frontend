@@ -646,25 +646,24 @@
   font-size: 24px;
 }
 
-.fpp-title {
-  font-weight: 600;
-  font-size: 15px;
-  color: #1e293b;
+.fpp-input,
+.fpp-select,
+.fpp-textarea {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 13px;
+  outline: none;
+  transition: all 0.15s;
+  box-sizing: border-box;
 }
 
-.fpp-subtitle {
-  font-size: 12px;
-  color: #64748b;
-}
-
-.fpp-close {
-  background: none;
-  border: none;
-  color: #94a3b8;
-  cursor: pointer;
-  font-size: 18px;
-  padding: 4px;
-  border-radius: 4px;
+.fpp-input:focus,
+.fpp-select:focus,
+.fpp-textarea:focus {
+  border-color: #16a34a;
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.1);
 }
 
 .fpp-close:hover {
