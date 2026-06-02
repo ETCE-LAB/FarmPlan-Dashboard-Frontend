@@ -112,7 +112,7 @@ function PolygonEditManager({ initialPolygon, onPolygonChange, resetToken, mapCo
 
       onAdd: function(map) {
         const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
-        container.innerHTML = `<a href="#" title="${t('Recenter on Polygon', 'Recenter on Polygon')}" style="font-size: 18px; text-decoration: none;">📍​</a>`;
+        container.innerHTML = `<a href="#" title="${t('Recenter on Polygon', 'Recenter on Polygon')}" style="font-size: 18px; text-decoration: none;">📍</a>`;
         
         L.DomEvent.on(container, 'click', function(e) {
           L.DomEvent.preventDefault(e);

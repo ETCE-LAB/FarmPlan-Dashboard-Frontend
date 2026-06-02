@@ -11,8 +11,6 @@ function FieldInventoryPanel({
   pagination = { total: 0, page: 1, totalPages: 1 },
   onSearch,
   onCategoryChange,
-  onStrataChange,
-  onLimitChange,
   onPageChange,
   onReload,
   isLoading = false,

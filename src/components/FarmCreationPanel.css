@@ -804,10 +804,41 @@
 }
 
 .fpp-toggle-opt.active {
-  background: #f0fdf4;
-  border-color: #16a34a;
-  color: #166534;
-  font-weight: 500;
+  background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+  border-color: #15803d;
+  color: #ffffff;
+  font-weight: 600;
+  box-shadow: 0 4px 10px rgba(21, 128, 61, 0.18);
+}
+
+.fpp-toggle-help {
+  margin-top: 8px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid #dbeafe;
+  background: #f8fbff;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #334155;
+  display: grid;
+  gap: 4px;
+}
+
+.fpp-toggle-help strong {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.fpp-toggle-help.active {
+  border-color: #86efac;
+  background: linear-gradient(135deg, rgba(240, 253, 244, 0.95) 0%, rgba(220, 252, 231, 0.95) 100%);
+  color: #14532d;
+}
+
+.fpp-toggle-help.inactive {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+  color: #475569;
 }
 
 

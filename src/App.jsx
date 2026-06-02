@@ -16,7 +16,7 @@ import { useTranslation } from 'react-i18next';
 // --- FIREBASE IMPORTS ---
 import { db } from './firebase'; 
 import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
-import { getTreelineOverview, getTreelineRecords, importTreelineCsv } from './utils/dashboardApi';
+import { getTreelineRecords, importTreelineCsv } from './utils/dashboardApi';
 
 // --- THEME UTILS ---
 const LIGHT_THEME_DEFAULTS = { mode: 'light', primary: '#2e7d32', sidebar: '#1b5e20', background: '#f8faf8', panel: '#ffffff' };
@@ -27,11 +27,6 @@ function hexToRgb(hexColor) {
   const hex = hexColor.replace('#', '');
   if (!/^[0-9A-Fa-f]{6}$/.test(hex)) return null;
   return { r: parseInt(hex.slice(0, 2), 16), g: parseInt(hex.slice(2, 4), 16), b: parseInt(hex.slice(4, 6), 16) };
-}
-
-function withAlpha(hexColor, alpha) {
-  const rgb = hexToRgb(hexColor);
-  return rgb ? `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha})` : `rgba(0, 0, 0, ${alpha})`;
 }
 
 function getAccessibleTextColor(hexColor) {
@@ -62,17 +57,11 @@ function App() {
   const [activeTab, setActiveTab] = useState('overview');
   const [farms, setFarms] = useState([]);
   const [theme, setTheme] = useState(LIGHT_THEME_DEFAULTS);
-  
-  // API State
-  const [overviewData, setOverviewData] = useState({ stats: [], performance: [], meta: null });
   const [tableData, setTableData] = useState({ records: [], options: { categories: [], strata: [], hardinessZones: [] }, pagination: { page: 1, limit: 10, total: 0 } });
   
   const [tableFilters, setTableFilters] = useState({ search: '', category: 'all', strata: 'all', hardiness: 'all', page: 1, limit: 10 });
   
-  const [isOverviewLoading, setIsOverviewLoading] = useState(false);
   const [isTableLoading, setIsTableLoading] = useState(false);
-  const [overviewError, setOverviewError] = useState('');
-  const [tableError, setTableError] = useState('');
 
   const themeVariables = useMemo(() => buildThemeVariables(theme), [theme]);
 
@@ -82,16 +71,6 @@ function App() {
       setFarms(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     });
     return () => unsubscribe();
-  }, []);
-
-  // --- DATA LOADING ---
-  const loadOverviewData = useCallback(async () => {
-    setIsOverviewLoading(true);
-    try {
-      const payload = await getTreelineOverview();
-      setOverviewData({ stats: payload.stats || [], performance: payload.performance || [], meta: payload.meta || null });
-    } catch (e) { setOverviewError(e.message); }
-    finally { setIsOverviewLoading(false); }
   }, []);
 
   const loadTableData = useCallback(async (filters) => {
@@ -104,7 +83,7 @@ function App() {
         options: payload.options || { categories: [], strata: [], hardinessZones: [] },
         pagination: payload.pagination 
       }));
-    } catch (e) { setTableError(e.message); }
+    } catch (e) { console.error(e); }
     finally { setIsTableLoading(false); }
   }, []);
 
@@ -113,20 +92,18 @@ function App() {
     try {
       await importTreelineCsv(); 
       await loadTableData(tableFilters); 
-      await loadOverviewData(); 
     } catch (e) { 
-      setTableError(e.message); 
+      console.error(e); 
     } finally { 
       setIsTableLoading(false); 
     }
   };
 
-  useEffect(() => { loadOverviewData(); }, [loadOverviewData]);
   useEffect(() => { loadTableData(tableFilters); }, [tableFilters, loadTableData]);
 
   // --- HANDLERS ---
   const handleCreateFarm = async (newFarm) => {
-    const { id, ...data } = newFarm;
+    const { id: _id, ...data } = newFarm;
     const docRef = await addDoc(collection(db, 'farms'), { ...data, fields: [], recipe: null });
     return docRef.id;
   };
@@ -209,7 +186,7 @@ function App() {
           {activeTab === 'configuration' && (
             <ThemeConfigurationPanel 
               theme={theme} 
-              onModeChange={(m) => setTheme(DARK_THEME_DEFAULTS)} // Simplified for example
+              onModeChange={() => setTheme(DARK_THEME_DEFAULTS)}
               onResetTheme={() => setTheme(LIGHT_THEME_DEFAULTS)}
             />
           )}

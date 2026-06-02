@@ -15,7 +15,6 @@ function SoilLookupPanel({ farms = [] }) {
   const [loadingSoil, setLoadingSoil] = useState(false);
   const [soilError, setSoilError] = useState('');
   const [soilData, setSoilData] = useState(null);
-  const [transformedPoint, setTransformedPoint] = useState(null);
 
   const activeService = SOIL_SERVICES[serviceKey];
   const soilResults = soilData?.results || [];
@@ -55,7 +54,6 @@ function SoilLookupPanel({ farms = [] }) {
     // 4. Run your friend's exact API fetch logic using your real farm coordinates
     try {
       const [x, y] = transformCoordinates(latNum, lonNum, activeService.spatialRef);
-      setTransformedPoint({ x, y, sr: activeService.spatialRef });
 
       const params = new URLSearchParams({
         geometry: `${x},${y}`,

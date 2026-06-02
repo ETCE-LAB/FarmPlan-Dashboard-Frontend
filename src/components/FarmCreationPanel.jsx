@@ -151,6 +151,30 @@ function findAutoSpacedPoint(targetPoint, polygon, placements, spacingMeters) {
   return null;
 }
 
+function normalizeStrataLabel(strata) {
+  return String(strata || '').trim().toLowerCase();
+}
+
+function getStrataColor(strata) {
+  const normalized = normalizeStrataLabel(strata);
+  if (normalized.includes('tree') || normalized.includes('canopy')) return '#166534';
+  if (normalized.includes('shrub')) return '#ca8a04';
+  if (normalized.includes('vine')) return '#0f766e';
+  if (normalized.includes('herb')) return '#2563eb';
+  if (normalized.includes('ground')) return '#7c3aed';
+  if (normalized.includes('root')) return '#ea580c';
+  return '#475569';
+}
+
+function getStrataCircleStyle(strata) {
+  const color = getStrataColor(strata);
+  return {
+    color,
+    fillColor: color,
+    fillOpacity: 0.10,
+  };
+}
+
 function MapNavigator({ targetLocation }) {
   const map = useMap();
   const markerRef = useRef(null);
@@ -237,9 +261,26 @@ function MapCropDropTarget({ onDropCrop }) {
   return null;
 }
 
-function CropPlacementLayer({ fields, draftPolygon, draftPlacements }) {
+function CropPlacementLayer({ fields, draftPolygon, draftPlacements, recipePlants }) {
   const map = useMap();
   const layerGroupRef = useRef(null);
+  const strataLookup = useMemo(() => {
+    const lookup = new Map();
+    (recipePlants || []).forEach((plant) => {
+      if (plant?.id) lookup.set(String(plant.id), plant);
+      if (plant?.name) lookup.set(String(plant.name).toLowerCase(), plant);
+      if (plant?.crop) lookup.set(String(plant.crop).toLowerCase(), plant);
+    });
+    return lookup;
+  }, [recipePlants]);
+
+  const resolvePlacementStrata = useCallback((placement) => {
+    if (placement?.strata) return placement.strata;
+    const byId = placement?.cropId ? strataLookup.get(String(placement.cropId)) : null;
+    if (byId?.strata) return byId.strata;
+    const byName = placement?.cropName ? strataLookup.get(String(placement.cropName).toLowerCase()) : null;
+    return byName?.strata || '';
+  }, [strataLookup]);
 
   useEffect(() => {
     if (!layerGroupRef.current) {
@@ -252,22 +293,24 @@ function CropPlacementLayer({ fields, draftPolygon, draftPlacements }) {
     (fields || []).forEach((field) => {
       (field.cropPlacements || []).forEach((placement) => {
         const latLng = [placement.lat, placement.lng];
+        const strata = resolvePlacementStrata(placement);
+        const strataStyle = getStrataCircleStyle(strata);
 
         L.circle(latLng, {
           radius: placement.minimumSpacingMeters,
-          color: '#16a34a',
+          ...strataStyle,
           weight: 2,
           fillOpacity: 0.08,
         }).addTo(group);
 
         L.circleMarker(latLng, {
           radius: 5,
-          color: '#14532d',
+          color: strataStyle.color,
           weight: 2,
-          fillColor: '#16a34a',
+          fillColor: strataStyle.fillColor,
           fillOpacity: 1,
         })
-          .bindTooltip(`${placement.cropName} (${placement.minimumSpacingMeters}m)`, {
+          .bindTooltip(`${placement.cropName}${strata ? ` · ${strata}` : ''} (${placement.minimumSpacingMeters}m)`, {
             permanent: false,
             direction: 'top',
           })
@@ -279,10 +322,12 @@ function CropPlacementLayer({ fields, draftPolygon, draftPlacements }) {
     if (hasDraftPolygon) {
       (draftPlacements || []).forEach((placement) => {
         const latLng = [placement.lat, placement.lng];
+        const strata = resolvePlacementStrata(placement);
+        const strataStyle = getStrataCircleStyle(strata);
 
         L.circle(latLng, {
           radius: placement.minimumSpacingMeters,
-          color: '#0ea5e9',
+          ...strataStyle,
           weight: 2,
           fillOpacity: 0.08,
           dashArray: '6 4',
@@ -290,19 +335,19 @@ function CropPlacementLayer({ fields, draftPolygon, draftPlacements }) {
 
         L.circleMarker(latLng, {
           radius: 5,
-          color: '#0369a1',
+          color: strataStyle.color,
           weight: 2,
-          fillColor: '#0ea5e9',
+          fillColor: strataStyle.fillColor,
           fillOpacity: 1,
         })
-          .bindTooltip(`Draft: ${placement.cropName} (${placement.minimumSpacingMeters}m)`, {
+          .bindTooltip(`Draft: ${placement.cropName}${strata ? ` · ${strata}` : ''} (${placement.minimumSpacingMeters}m)`, {
             permanent: false,
             direction: 'top',
           })
           .addTo(group);
       });
     }
-  }, [map, fields, draftPolygon, draftPlacements]);
+  }, [map, fields, draftPolygon, draftPlacements, resolvePlacementStrata]);
 
   useEffect(() => () => {
     if (layerGroupRef.current && map.hasLayer(layerGroupRef.current)) {
@@ -315,11 +360,12 @@ function CropPlacementLayer({ fields, draftPolygon, draftPlacements }) {
 }
 
 function FieldDrawer({
-  fields, selectedFieldId, editingShapeId,
+  fields, draftPolygon, selectedFieldId, editingShapeId,
   onPolygonDrawn, onPolygonEdited, onFieldClick,
 }) {
   const map = useMap();
   const layerMapRef = useRef({});
+  const draftLayerRef = useRef(null);
   const drawingRef = useRef(false);
   const onPolygonDrawnRef = useRef(onPolygonDrawn);
   const onPolygonEditedRef = useRef(onPolygonEdited);
@@ -331,6 +377,22 @@ function FieldDrawer({
   useEffect(() => { onFieldClickRef.current = onFieldClick; }, [onFieldClick]);
 
   useEffect(() => {
+    if (draftLayerRef.current && map.hasLayer(draftLayerRef.current)) {
+      map.removeLayer(draftLayerRef.current);
+      draftLayerRef.current = null;
+    }
+
+    if (draftPolygon && draftPolygon.length >= 3) {
+      draftLayerRef.current = L.polygon(draftPolygon.map((p) => [p.lat, p.lng]), {
+        color: '#f59e0b',
+        weight: 3,
+        fillOpacity: 0.18,
+        fillColor: '#fde68a',
+        dashArray: '8 6',
+      }).addTo(map);
+      draftLayerRef.current.bringToFront();
+    }
+
     for (const id of Object.keys(layerMapRef.current)) {
       if (!fields.find((f) => f.id === Number(id))) {
         const layer = layerMapRef.current[id];
@@ -361,7 +423,7 @@ function FieldDrawer({
         if (isEditingShape) layer.pm.enable({ allowSelfIntersection: false });
       }
     }
-  }, [fields, selectedFieldId, editingShapeId, map, t]);
+  }, [fields, draftPolygon, selectedFieldId, editingShapeId, map, t]);
 
   useEffect(() => {
     if (!editingShapeId) return;
@@ -399,6 +461,10 @@ function FieldDrawer({
 
   useEffect(() => () => {
     Object.values(layerMapRef.current).forEach((l) => { if (map.hasLayer(l)) map.removeLayer(l); });
+    if (draftLayerRef.current && map.hasLayer(draftLayerRef.current)) {
+      map.removeLayer(draftLayerRef.current);
+      draftLayerRef.current = null;
+    }
   }, [map]);
 
   return null;
@@ -517,18 +583,29 @@ function FieldPropertiesPanel({
               type="button"
               className={`fpp-toggle-opt ${form.autoSpacingEnabled ? 'active' : ''}`}
               onClick={() => setForm((p) => ({ ...p, autoSpacingEnabled: true }))}
+              aria-pressed={form.autoSpacingEnabled}
             >
-              {t('On', 'On')}
+              {t('Enabled', 'Enabled')}
             </button>
             <button
               type="button"
               className={`fpp-toggle-opt ${!form.autoSpacingEnabled ? 'active' : ''}`}
               onClick={() => setForm((p) => ({ ...p, autoSpacingEnabled: false }))}
+              aria-pressed={!form.autoSpacingEnabled}
             >
-              {t('Off', 'Off')}
+              {t('Disabled', 'Disabled')}
             </button>
           </div>
-         
+          <div className={`fpp-toggle-help ${form.autoSpacingEnabled ? 'active' : 'inactive'}`}>
+            <strong>
+              {form.autoSpacingEnabled ? t('Auto spacing is on.', 'Auto spacing is on.') : t('Auto spacing is off.', 'Auto spacing is off.')}
+            </strong>
+            <span>
+              {form.autoSpacingEnabled
+                ? t('Dropped crops will be nudged to the nearest valid spot inside the field if needed.', 'Dropped crops will be nudged to the nearest valid spot inside the field if needed.')
+                : t('Dropped crops must fit exactly where you place them.', 'Dropped crops must fit exactly where you place them.')}
+            </span>
+          </div>
         </div>
         <div className="fpp-field-group">
           <label className="fpp-label">{t('Notes', 'Notes')}</label>
@@ -675,14 +752,14 @@ function FarmCreationPanel({ onCreateFarm, farms, onUpdateFarm }) {
     }
 
     const targetPolygon = draftFieldPolygon ?? selectedField?.borderPolygon ?? null;
-    if (!targetPolygon || targetPolygon.length < 3) {
     const autoSpacingEnabled = Boolean(selectedField?.autoSpacingEnabled);
+    if (!targetPolygon || targetPolygon.length < 3) {
       setCropDropFeedback(t('Draw or select a field polygon before dropping crops.', 'Draw or select a field polygon before dropping crops.'));
       return;
     }
 
     if (!isPointInPolygon(point, targetPolygon)) {
-      setCropDropFeedback(t());
+      setCropDropFeedback(t('Drop the crop inside the selected field polygon.', 'Drop the crop inside the selected field polygon.'));
       return;
     }
 
@@ -691,6 +768,7 @@ function FarmCreationPanel({ onCreateFarm, farms, onUpdateFarm }) {
       id: `${crop.id}-${Date.now()}-${Math.random().toString(16).slice(2)}`,
       cropId: crop.id,
       cropName: crop.name,
+      strata: crop.strata || crop.rawDetails?.strata || '',
       minimumSpacingMeters: spacingMeters,
       lat: Number(point.lat.toFixed(7)),
       lng: Number(point.lng.toFixed(7)),
@@ -944,9 +1022,10 @@ function FarmCreationPanel({ onCreateFarm, farms, onUpdateFarm }) {
             fields={activeFields}
             draftPolygon={draftFieldPolygon}
             draftPlacements={draftCropPlacements}
+            recipePlants={recipePlants}
           />
           {selectedFarm && (
-            <FieldDrawer fields={activeFields} selectedFieldId={selectedFieldId} editingShapeId={editingShapeId}
+            <FieldDrawer fields={activeFields} draftPolygon={draftFieldPolygon} selectedFieldId={selectedFieldId} editingShapeId={editingShapeId}
               onPolygonDrawn={handleFieldPolygonDrawn} onPolygonEdited={handleFieldPolygonEdited} onFieldClick={handleFieldClick} />
           )}
           <LayersControl position="topleft">
