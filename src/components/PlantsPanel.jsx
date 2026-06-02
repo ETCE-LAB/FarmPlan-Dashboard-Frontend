@@ -1,6 +1,8 @@
+// src/components/PlantsPanel.jsx  (FieldInventoryPanel)
 import React, { useState } from 'react';
 import { RefreshCw, ChevronDown, ChevronUp } from 'lucide-react';
-import { useTranslation } from 'react-i18next'; // <-- Imported useTranslation
+import { useTranslation } from 'react-i18next';
+import PlantImage from './PlantImage';
 import './FieldInventoryPanel.css';
 
 function PlantsPanel({
@@ -19,7 +21,7 @@ function PlantsPanel({
 }) {
   const [searchInput, setSearchInput] = useState(filters.search || '');
   const [expandedRowId, setExpandedRowId] = useState(null);
-  const { t } = useTranslation(); // <-- Added hook
+  const { t } = useTranslation();
 
   const handleSearchSubmit = (event) => {
     event.preventDefault();
@@ -35,39 +37,41 @@ function PlantsPanel({
       <div className="panel-header">
         <span>{t('Treeline Plants Explorer', 'Treeline Plants Explorer')}</span>
         <button className="refresh-btn" type="button" onClick={onReload} disabled={isLoading}>
-          <RefreshCw size={14} className={isLoading ? 'spin' : ''} style={{ marginRight: '6px' }} /> 
+          <RefreshCw size={14} className={isLoading ? 'spin' : ''} style={{ marginRight: '6px' }} />
           {isLoading ? t('Loading...', 'Loading...') : t('Reload CSV', 'Reload CSV')}
         </button>
       </div>
 
       <div className="table-toolbar">
         <form className="search-wrap" onSubmit={handleSearchSubmit}>
-          <input className="table-control" type="search" value={searchInput} onChange={(e) => setSearchInput(e.target.value)} placeholder={t('Search species...', 'Search species...')} />
+          <input className="table-control" type="search" value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            placeholder={t('Search species...', 'Search species...')} />
           <button className="search-btn" type="submit">{t('Search', 'Search')}</button>
         </form>
 
-        <select className="table-control" value={filters.category} onChange={(event) => onCategoryChange && onCategoryChange(event.target.value)}>
+        <select className="table-control" value={filters.category}
+          onChange={(e) => onCategoryChange && onCategoryChange(e.target.value)}>
           <option value="all">{t('All types', 'All types')}</option>
-          {(options?.categories || []).map((category) => (
-            <option key={category} value={category}>{t(category, category)}</option>
-          ))}
+          {(options?.categories || []).map((c) => <option key={c} value={c}>{t(c, c)}</option>)}
         </select>
 
-        <select className="table-control" value={filters.strata} onChange={(event) => onStrataChange && onStrataChange(event.target.value)}>
+        <select className="table-control" value={filters.strata}
+          onChange={(e) => onStrataChange && onStrataChange(e.target.value)}>
           <option value="all">{t('All strata', 'All strata')}</option>
-          {(options?.strata || []).map((strata) => (
-            <option key={strata} value={strata}>{t(strata, strata)}</option>
-          ))}
+          {(options?.strata || []).map((s) => <option key={s} value={s}>{t(s, s)}</option>)}
         </select>
 
-        <select className="table-control" value={filters.hardiness || 'all'} onChange={(event) => onHardinessChange && onHardinessChange(event.target.value)}>
+        <select className="table-control" value={filters.hardiness || 'all'}
+          onChange={(e) => onHardinessChange && onHardinessChange(e.target.value)}>
           <option value="all">{t('All zones', 'All zones')}</option>
-          {(options?.hardinessZones || []).map((zone) => (
-            <option key={zone} value={zone}>{t('Zone', 'Zone')} {zone}</option>
+          {(options?.hardinessZones || []).map((z) => (
+            <option key={z} value={z}>{t('Zone', 'Zone')} {z}</option>
           ))}
         </select>
 
-        <select className="table-control" value={String(filters.limit)} onChange={(event) => onLimitChange && onLimitChange(Number(event.target.value))}>
+        <select className="table-control" value={String(filters.limit)}
+          onChange={(e) => onLimitChange && onLimitChange(Number(e.target.value))}>
           <option value="10">10 {t('rows', 'rows')}</option>
           <option value="20">20 {t('rows', 'rows')}</option>
           <option value="50">50 {t('rows', 'rows')}</option>
@@ -88,8 +92,13 @@ function PlantsPanel({
         <tbody>
           {(rows || []).map((log) => (
             <React.Fragment key={log.id}>
-              <tr onClick={() => toggleRow(log.id)} style={{ cursor: 'pointer', transition: 'background-color 0.2s' }} className={expandedRowId === log.id ? 'active-row' : ''}>
-                <td>{expandedRowId === log.id ? <ChevronUp size={16}/> : <ChevronDown size={16}/>}</td>
+              {/* ── Summary row ── */}
+              <tr
+                onClick={() => toggleRow(log.id)}
+                style={{ cursor: 'pointer', transition: 'background-color 0.2s' }}
+                className={expandedRowId === log.id ? 'active-row' : ''}
+              >
+                <td>{expandedRowId === log.id ? <ChevronUp size={16} /> : <ChevronDown size={16} />}</td>
                 <td className="field-id">{log.id}</td>
                 <td>
                   <strong>{t(log.name, log.name)}</strong><br />
@@ -100,34 +109,64 @@ function PlantsPanel({
                 <td>{t(log.hardiness, log.hardiness)}</td>
               </tr>
 
-              {/* DETAILED PROFILE ACCORDION */}
+              {/* ── Expanded profile accordion ── */}
               {expandedRowId === log.id && (
-                <tr style={{ backgroundColor: '#f8fafc' }}>
+                <tr style={{ backgroundColor: 'var(--panel-bg, #f8fafc)' }}>
                   <td colSpan={6} style={{ padding: '20px', borderBottom: '2px solid #e2e8f0' }}>
-                    <div style={{ padding: '10px 0' }}>
-                      <h4 style={{ margin: '0 0 12px 0', color: '#0f172a' }}>{t('Plant Profile', 'Plant Profile')}</h4>
-                      <p style={{ margin: '6px 0', fontSize: '0.95rem' }}>
-                        <strong>{t('Primary Purpose', 'Primary Purpose')}:</strong> {t(log.rawDetails?.purpose || log.rawDetails?.primary_use || 'Data not in CSV', log.rawDetails?.purpose || log.rawDetails?.primary_use || 'Data not in CSV')}
-                      </p>
-                      
-                      {/* FIXED: Reverted to the dropdown but added "/year" to the text */}
-                      <p style={{ margin: '6px 0', fontSize: '0.95rem' }}>
-                        <strong>{t('Expected Calories', 'Expected Calories')}:</strong> <span style={{ color: '#10b981', fontWeight: 'bold' }}>{log.calories ? log.calories.toLocaleString() + ` ${t('kcal/year', 'kcal/year')}` : t('Data not in CSV', 'Data not in CSV')}</span>
-                      </p>
-                      
+
+                    {/* Two-column layout: image left, details right */}
+                    <div style={{ display: 'flex', gap: '24px', alignItems: 'flex-start' }}>
+
+                      {/* ── Plant photo with attribution ── */}
+                      <PlantImage
+                        sourceId={log.id}
+                        size="panel"
+                        alt={`${log.name} (${log.crop})`}
+                      />
+
+                      {/* ── Text details ── */}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <h4 style={{ margin: '0 0 12px 0', color: '#0f172a', fontSize: '1rem' }}>
+                          {t('Plant Profile', 'Plant Profile')}
+                        </h4>
+
+                        <p style={{ margin: '6px 0', fontSize: '0.95rem' }}>
+                          <strong>{t('Primary Purpose', 'Primary Purpose')}:</strong>{' '}
+                          {t(
+                            log.rawDetails?.purpose || log.rawDetails?.primary_use || 'Data not in CSV',
+                            log.rawDetails?.purpose || log.rawDetails?.primary_use || 'Data not in CSV',
+                          )}
+                        </p>
+
+                        <p style={{ margin: '6px 0', fontSize: '0.95rem' }}>
+                          <strong>{t('Expected Calories', 'Expected Calories')}:</strong>{' '}
+                          <span style={{ color: '#10b981', fontWeight: 'bold' }}>
+                            {log.calories
+                              ? log.calories.toLocaleString() + ` ${t('kcal/year', 'kcal/year')}`
+                              : t('Data not in CSV', 'Data not in CSV')}
+                          </span>
+                        </p>
+
+                        <details style={{ marginTop: '15px', fontSize: '0.8rem', color: '#64748b' }}>
+                          <summary style={{ cursor: 'pointer' }}>
+                            {t('View raw CSV record', 'View raw CSV record')}
+                          </summary>
+                          <pre style={{
+                            backgroundColor: '#fff', padding: '10px', borderRadius: '4px',
+                            overflowX: 'auto', marginTop: '10px',
+                          }}>
+                            {JSON.stringify(log.rawDetails, null, 2)}
+                          </pre>
+                        </details>
+                      </div>
                     </div>
-                    
-                    <details style={{ marginTop: '15px', fontSize: '0.8rem', color: '#64748b' }}>
-                      <summary style={{ cursor: 'pointer' }}>{t('View raw CSV record', 'View raw CSV record')}</summary>
-                      <pre style={{ backgroundColor: '#fff', padding: '10px', borderRadius: '4px', overflowX: 'auto', marginTop: '10px' }}>
-                        {JSON.stringify(log.rawDetails, null, 2)}
-                      </pre>
-                    </details>
+
                   </td>
                 </tr>
               )}
             </React.Fragment>
           ))}
+
           {(!rows || rows.length === 0) && (
             <tr>
               <td colSpan={6} style={{ textAlign: 'center', padding: '2rem' }}>
@@ -145,9 +184,17 @@ function PlantsPanel({
             : t('No records found for current filters', 'No records found for current filters')}
         </div>
         <div className="pagination-actions">
-          <button className="pagination-btn" type="button" onClick={() => onPageChange && onPageChange(pagination.page - 1)} disabled={!pagination?.hasPrev || isLoading}>{t('Prev', 'Prev')}</button>
+          <button className="pagination-btn" type="button"
+            onClick={() => onPageChange && onPageChange(pagination.page - 1)}
+            disabled={!pagination?.hasPrev || isLoading}>
+            {t('Prev', 'Prev')}
+          </button>
           <span className="page-count">{t('Page', 'Page')} {pagination?.page || 1}</span>
-          <button className="pagination-btn" type="button" onClick={() => onPageChange && onPageChange(pagination.page + 1)} disabled={!pagination?.hasNext || isLoading}>{t('Next', 'Next')}</button>
+          <button className="pagination-btn" type="button"
+            onClick={() => onPageChange && onPageChange(pagination.page + 1)}
+            disabled={!pagination?.hasNext || isLoading}>
+            {t('Next', 'Next')}
+          </button>
         </div>
       </div>
     </section>

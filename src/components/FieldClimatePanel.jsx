@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   Cloud, Sun, Droplets, Thermometer, Wind,
-  Layers, Loader, AlertCircle, ChevronDown, ChevronUp, Leaf,
+  Layers, Loader, AlertCircle, ChevronDown, ChevronUp, Leaf, LandPlot, Grid2x2
 } from 'lucide-react';
 import './FieldClimatePanel.css';
 
@@ -343,7 +343,7 @@ function Section({ title, icon, children, defaultOpen = true }) {
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-function FieldClimatePanel({ field, onSoilDetected }) {
+function FieldClimatePanel({ field, onSoilDetected, fieldHardinessData, isLoadingHardiness }) {
   const [weather, setWeather] = useState(null);
   const [solar,   setSolar]   = useState(null);
   const [soil,    setSoil]    = useState(null);
@@ -555,6 +555,54 @@ function FieldClimatePanel({ field, onSoilDetected }) {
           )}
         </Section>
       )}
+
+   {/* ── Hardiness Zone ── */}
+{isLoadingHardiness && (
+  <Section title="Farm Hardiness Zone" icon={<Thermometer size={14} />} defaultOpen={true}>
+    <div style={{ padding: '12px', textAlign: 'center', color: '#94a3b8' }}>
+      <Loader size={14} className="fcp-spin" />
+      <p style={{ marginTop: '8px' }}>Analyzing hardiness zone…</p>
+    </div>
+  </Section>
+)}
+
+{fieldHardinessData?.dominantZone && !isLoadingHardiness && (
+  <Section title="Farm Hardiness Zone" icon={<LandPlot size={17} />}>
+    <div className="fcp-stat-grid">
+      <StatTile
+        icon={<LandPlot size={15} />}
+        label="Dominant Zone"
+        value={fieldHardinessData.dominantZone}
+      />
+      <StatTile
+        icon={<Thermometer size={15} />}
+        label="Temperature Range"
+        value={fieldHardinessData.temperature[0] + "°C, " + fieldHardinessData.temperature[1] + "°C"}
+      />
+      </div>
+
+      <div className="fcp-soil-grid" style={{ marginTop: '10px' }}></div>
+        <div className="fcp-soil-row">
+          <span className="fcp-soil-key">Pixels (km²) Intersected</span>
+          <span className="fcp-soil-val">{fieldHardinessData.pixelCount ?? fieldHardinessData.rawPixelCount}  </span>
+        </div>
+
+        {Object.keys(fieldHardinessData.distribution || {}).length > 0 && (
+        <div className="fcp-soil-grid" style={{ marginTop: '1px' }}>
+          {Object.entries(fieldHardinessData.distribution)
+            .sort((a, b) => b[1] - a[1])
+            .map(([zone, pct]) => (
+              <div key={zone} className="fcp-soil-row">
+                <span className="fcp-soil-key">Zone {zone}</span>
+                <span className="fcp-soil-val">
+                  {pct}%
+                </span>
+              </div>
+            ))}
+        </div>
+      )}
+  </Section>
+)}
 
       {!loading && !weather && !solar && !soil && !error && (
         <div className="fcp-loading-state">
