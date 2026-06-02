@@ -1,19 +1,59 @@
 # FarmPlan Dashboard
 
+FarmPlan is a farm planning dashboard for creating farms, drawing field borders, exploring plant data, checking soil information, and reviewing hardiness zones. The frontend is split into tabs so each workflow stays focused:
 
-- overview page with stats, table, soil lookup, chart
-- field mapping page where you can create a farm and draw borders
-- location search by lat/lng or address
+- Overview dashboard with live statistics, inventory summaries, soil lookup, and a yield chart
+- Farm creation workspace with map drawing, drag-and-drop crop placement, recipe creation, and hardiness lookup
+- Farm editing workspace for updating or deleting saved farms
+- Plant inventory browser with search, filters, pagination, and data reload
+- Theme and settings panel for live layout color customization
 
+## Features
 
-## What Is Built So Far
+### Dashboard overview
 
-Main things currently working:
+- KPI cards powered by saved farm data
+- Field inventory table
+- Soil lookup panel for coordinate-based soil queries
+- Yield chart built with Recharts
 
-1. Farm creation form with required inputs
-2. Map-based border drawing (polygon create/edit/delete)
-3. Area/perimeter calculation from the drawn polygon
-4. Soil API lookup (through Vite proxy)
+### Farm creation
+
+- Required farm form fields with validation
+- Map-based polygon drawing for borders
+- Edit and delete drawn field polygons
+- Automatic area and perimeter calculations
+- Location search by coordinates or address
+- Hardiness zone analysis for a selected field polygon
+- Drag-and-drop crop placement inside an active field polygon
+- Recipe creation and editing for assigning plants to a farm
+- Farm data stored in Firestore
+
+### Farm editing
+
+- View existing farms
+- Update farm metadata
+- Delete farms from the collection
+
+### Plant inventory
+
+- MongoDB-backed plant table
+- Search by ID, German name, English name, or Latin name
+- Filter by category, strata, and hardiness zone
+- Pagination and page-size control
+- Manual reload of the treeline CSV into the backend
+
+### Theme and layout
+
+- Light and dark theme modes
+- Live accent, sidebar, background, and panel color controls
+- Theme values are applied through CSS variables
+
+### Localization and UI
+
+- i18next-based text handling
+- English and German locale files
+- Sidebar navigation and top bar layout shared across all tabs
 
 
 ## Stack
@@ -78,7 +118,7 @@ From `farmplan`:
 npm run dev
 ```
 
-Vite proxies Flask calls from `/api/flask/*` to `http://localhost:5000`.
+Vite proxies backend calls from the frontend to `http://localhost:5000`.
 
 ### One-command startup (frontend + backend)
 
@@ -121,23 +161,34 @@ npm run lint
 
 ```text
 src/
-  App.jsx                        # app-level state + tab rendering + theme vars
+  App.jsx                        # app-level state, tabs, theme vars, Firebase sync
   components/
     Sidebar.jsx                  # left navigation
-    TopBar.jsx                   # top search/profile row
+    TopBar.jsx                   # top header row
     StatsRow.jsx                 # KPI cards
-    FieldInventoryPanel.jsx      # table panel
-    SoilLookupPanel.jsx          # BGR API lookup panel
-    YieldChartPanel.jsx          # chart panel
-    FarmCreationPanel.jsx        # create farm + map drawing
+    FieldInventoryPanel.jsx      # overview inventory panel
+    SoilLookupPanel.jsx          # soil lookup panel
+    YieldChartPanel.jsx          # overview chart panel
+    FarmCreationPanel.jsx        # create farm + map drawing + recipes + hardiness
+    DragDropCrops.jsx            # draggable crop cards for field placement
+    FarmEditPanel.jsx            # edit and delete farms
+    PlantsPanel.jsx              # plant inventory browser
     ThemeConfigurationPanel.jsx  # theme controls
+    FieldClimatePanel.jsx        # hardiness analysis for selected field
+    Recipe.jsx                   # recipe builder dialog
   data/
     dashboardData.js             # demo/static data
+  hooks/
+    usePlantImage.js             # plant image helper hook
+  locales/
+    en.json
+    de.json
   utils/
+    dashboardApi.js              # backend API helpers
     soilUtils.js                 # coordinate transform + result helpers
   styles/
     AppLayout.css
-vite.config.js                   # includes proxy for BGR API
+vite.config.js                   # proxy setup for external APIs
 ```
 
 ## App Flow
@@ -145,16 +196,17 @@ vite.config.js                   # includes proxy for BGR API
 Main state is in src/App.jsx:
 
 - activeTab
-- farms list (currently in-memory only)
+- farms list synchronized with Firestore
 - theme object
-- tableFilters & tableData (for treeline inventory queries)
+- tableFilters and tableData for treeline inventory queries
 
 Tab mapping:
 
 - Overview: stats cards, soil lookup, yield chart
-- Field Mapping: farm creation + polygon drawing
-- Treeline Plants: searchable/filterable plant inventory with pagination
-- Theme and Settings: dark/light + colors
+- Farm Setup: farm creation + polygon drawing + hardiness + recipe editor
+- Farm Edit: update or delete existing farms
+- Treeline Plants: searchable and filterable plant inventory with pagination
+- Settings: dark/light + colors
 
 ## Farm Mapping Notes
 
@@ -174,6 +226,8 @@ Map layers:
 
 - OpenStreetMap
 - Esri World Imagery (satellite)
+
+The farm creation panel also shows the hardiness results for the selected field and lets you create or edit a recipe for that farm.
 
 ## Soil API Notes
 
@@ -202,9 +256,9 @@ Files:
 - src/components/FarmCreationPanel.jsx
 - src/components/FieldClimatePanel.jsx
 
-1. Gets Polygon from selected Field 
-2. Makes POST call to Backend API
-3. gets JSON respones and display in FieldClimatePanel
+1. Gets a polygon from the selected field
+2. Makes a POST call to the backend API
+3. Displays the returned hardiness data in FieldClimatePanel
 
 Example: 
 
@@ -223,7 +277,7 @@ Example:
   ]
 }
 ```
-LICENS NOTE: Regard DATALICENC&ATTRIBUTION.md for data usegage and licenc information. 
+License note: Refer to DATALICENSE&ATTRIBUTION.md for data usage and license information.
 
 ## Theme System Notes
 
