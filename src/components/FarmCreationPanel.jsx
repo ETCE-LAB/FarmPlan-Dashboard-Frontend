@@ -575,7 +575,7 @@ function FarmCreationPanel({ onCreateFarm, farms, onUpdateFarm }) {
   const [searchInput, setSearchInput] = useState('');
   const [searchFeedback, setSearchFeedback] = useState({ type: '', message: '' });
   const [isSearching, setIsSearching] = useState(false);
-  const [fieldHardninessData, setFieldHardninessData] = useState(null);
+  const [fieldHardinessData, setFieldHardinessData] = useState(null);
   const [isLoadingHardiness, setIsLoadingHardiness] = useState(false);
   const { t } = useTranslation(); // <-- Imported useTranslation
 
@@ -593,7 +593,7 @@ function FarmCreationPanel({ onCreateFarm, farms, onUpdateFarm }) {
 
   const fetchFieldHardiness = useCallback(async (farm) => {
     if (!farm?.fields || farm.fields.length === 0) {
-      setFieldHardninessData(null);
+      setFieldHardinessData(null);
       return;
     }
 
@@ -603,7 +603,7 @@ function FarmCreationPanel({ onCreateFarm, farms, onUpdateFarm }) {
       .map((f) => f.borderPolygon);
 
     if (validPolygons.length === 0) {
-      setFieldHardninessData(null);
+      setFieldHardinessData(null);
       return;
     }
 
@@ -615,10 +615,10 @@ function FarmCreationPanel({ onCreateFarm, farms, onUpdateFarm }) {
       const polygonArray = polygon.map((point) => [point.lat, point.lng]);
       const result = await getFieldHardiness(polygonArray);
       console.log('Hardiness analysis result:', result);
-      setFieldHardninessData(result);
+      setFieldHardinessData(result);
     } catch (error) {
       console.error('Error fetching hardiness data:', error);
-      setFieldHardninessData(null);
+      setFieldHardinessData(null);
     } finally {
       setIsLoadingHardiness(false);
     }
@@ -628,7 +628,7 @@ function FarmCreationPanel({ onCreateFarm, farms, onUpdateFarm }) {
     if (selectedFarm) {
       fetchFieldHardiness(selectedFarm);
     } else {
-      setFieldHardninessData(null);
+      setFieldHardinessData(null);
     }
   }, [selectedFarm, fetchFieldHardiness]);
 
@@ -954,7 +954,7 @@ function FarmCreationPanel({ onCreateFarm, farms, onUpdateFarm }) {
               {selectedField && (
                 <FieldClimatePanel field={selectedField}
                 onSoilDetected={handleSoilDetected}
-                fieldHardinessData={fieldHardninessData}
+                fieldHardinessData={fieldHardinessData}
                 isLoadingHardiness={isLoadingHardiness}
                  />
               )}
