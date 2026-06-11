@@ -128,3 +128,15 @@
   color: var(--farm-green-main, #2e7d32);
   text-decoration: underline;
 }
+
+/* Subtle pulse while the real image is still loading */
+.pi-card-img--loading {
+  opacity: 0.55;
+  animation: pi-shimmer 1.4s ease-in-out infinite;
+}
+
+/* Fallback panel image — slightly dimmed to signal it's a placeholder */
+.pi-panel-img--fallback {
+  opacity: 0.5;
+  filter: grayscale(30%);
+}
