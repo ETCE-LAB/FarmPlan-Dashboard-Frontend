@@ -1,4 +1,4 @@
-const API_BASE = '/api/flask/api';
+const API_BASE = window.FARM_PLAN_CONFIG?.API_BASE_URL || '/api/flask/api';
 
 async function requestJson(path, options = {}) {
   const response = await fetch(`${API_BASE}${path}`, {
