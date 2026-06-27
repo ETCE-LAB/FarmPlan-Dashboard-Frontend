@@ -1,3 +1,3 @@
 window.FARM_PLAN_CONFIG = {
-  API_BASE_URL: "https://actual-live-backend-url.com", 
+  API_BASE_URL: "https://farmplan-backend.etce.isse.tu-clausthal.de", 
 };
