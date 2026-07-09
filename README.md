@@ -306,7 +306,7 @@ Whenever you add new text to the React UI, run the automated translation script.
 ```bash
 # Run this command every time you update or add new text to the UI
 npm run i18n
-
+```
 
 ## Final Handoff Tip
 
