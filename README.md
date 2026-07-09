@@ -293,6 +293,20 @@ Current controls:
 
 Theme UI is in src/components/ThemeConfigurationPanel.jsx.
 
+## Languages & Translations (i18n)
+
+This application supports multiple languages and uses an automated script to manage translations. If you are contributing to the project and want to update translations or add a new language, follow this workflow:
+
+### 1. Locate the Translation Files
+All translation dictionaries are stored as JSON files. You can find them located in your frontend source folder (typically under `src/locales/` or the root `locales/` directory, such as `en.json` for English).
+
+### 2. Updating Existing Translations
+Whenever you add new text to the React UI, run the automated translation script. This script will extract any new translation keys you've added to the code and automatically generate the missing translations:
+
+```bash
+# Run this command every time you update or add new text to the UI
+npm run i18n
+
 
 ## Final Handoff Tip
 
