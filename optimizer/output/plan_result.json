@@ -1,0 +1,15 @@
+{
+  "exact_calories": 6840750.0,
+  "predicted_calories": 6840750.0,
+  "prediction_error": 0.0,
+  "error_pct": 0.0,
+  "placements": 297,
+  "species_count": 35,
+  "field_size_m": [
+    60.0,
+    40.0
+  ],
+  "spacing_violations": 0,
+  "layout": "syntropic_treelines",
+  "spacing_standard": "Rancho Mastatal"
+}
