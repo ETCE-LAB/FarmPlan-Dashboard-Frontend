@@ -56,93 +56,6 @@ npm run dev:full
 
 This runs Vite and Flask together in one command.
 
-## Treeline Table Query API
-
-The inventory table now supports MongoDB-backed search/filter/pagination via:
-
-- `GET /api/treeline/records?page=1&limit=10&search=walnut&category=Tree&strata=Emergent canopy`
-
-Query params:
-
-- `page` (default `1`)
-- `limit` (default `10`, max `100`)
-- `search` (matches ID/German/English/Latin names)
-- `category` (`all` or exact category)
-- `strata` (`all` or exact strata)
-
-Build commands:
-
-```bash
-npm run build
-npm run preview
-```
-
-Lint:
-
-```bash
-npm run lint
-```
-
-## Agroforestry Optimizer
-
-`optimizer/end_to_end.py` generates the crop placement plan that feeds
-`plan_placements.json`, which the Field Mapping tab reads to auto-align
-crops on a drawn field.
-
-It is a deterministic, rule-based layout generator (no training step
-required to run it) that fills a 60 m × 40 m reference field with 6
-treelines (spaced 8 m apart) and 5 trellis/alley columns interleaved
-between them, stacking species top-to-bottom per column by stratum
-(Emergent → High → Medium → Low canopy → Shrub, with Climbers/Herbs
-filling the trellis columns), while enforcing minimum spacing distances
-between plant tiers (the Rancho Mastatal spacing matrix).
-
-### Running it
-
-```bash
-cd optimizer
-python end_to_end.py
-```
-
-This reads the species CSV, builds the layout, validates spacing, and
-writes `optimizer/output/plan_placements.json` and
-`optimizer/output/plan_result.json`.
-
-### Latest run statistics
-
-```
-Total placements:   297
-Unique species:     35
-Total calories:     6,840,750 kcal / year
-Spacing check:      PASS ✓ (0 violations)
-Treelines:          147 plants
-Trellis columns:    150 plants
-```
-
-Breakdown by strata:
-
-| Strata             | Plants | Species | Calories (kcal/yr) |
-| ------------------ | -----: | ------: | -----------------: |
-| Emergent canopy    |     21 |       4 |          3,911,250 |
-| Medium tree        |     36 |       7 |            935,400 |
-| Shrub layer        |     72 |      13 |            722,925 |
-| Low/medium tree    |     12 |       2 |            624,000 |
-| Climber/liana      |    100 |       5 |            402,200 |
-| Low tree           |      6 |       1 |            177,600 |
-| Tall herb geophyte |     20 |       1 |             30,400 |
-| Herb               |     15 |       1 |             21,600 |
-| Herb geophyte      |     15 |       1 |             15,375 |
-
-Species diversity highlights:
-
-- **Emergent canopy:** Black walnut, Heartnut, Shagbark hickory, Walnut
-- **Medium tree:** Apple (semi-standard), Cornelian cherry, Elder (tree form), Hardy persimmon (hybrids), Pear (semi-standard), +2 more
-- **Shrub layer:** Autumn olive, Blackthorn (sloe), Buffaloberry, Cornelian cherry (shrub), Elder (multi-stem), +8 more
-- **Climber/liana:** Chocolate vine, Five-flavor berry, Grapevine, Groundnut, Hardy kiwi
-
-Full details, spacing matrix, and customization options are documented
-in `optimizer/README.md`.
-
 ## Project Structure (Important Files)
 
 ```text
@@ -173,35 +86,8 @@ optimizer/
   README.md                      # optimizer documentation (spacing matrix, algorithm)
 ```
 
-# Production Deployment (Docker & CI/CD)
 
-The application is fully configured for production deployment using Docker and runtime configuration.
-
-## 1. Backend Deployment (Docker)
-
-The backend is containerized via Docker and requires system dependencies (like `libexpat1` for `rasterio`) which are pre-configured in the Dockerfile.
-
-Ensure your server `.env` file is populated with production values:
-
-```env
-MONGO_URI=mongodb+srv://<user>:<password>@cluster.mongodb.net
-FLASK_PORT=5000
-FLASK_ENV=production
-```
-
-Build the Docker image:
-
-```bash
-docker build -t farmplan-dashboard-backend:latest .
-```
-
-Run the container:
-
-```bash
-docker run -p 5000:5000 --env-file .env farmplan-dashboard-backend:latest
-```
-
-## 2. Frontend Deployment (Runtime Configuration)
+##  Frontend Deployment (Runtime Configuration)
 
 The frontend uses a dynamic runtime configuration pattern. This means the server administrator can change the backend API URL without needing to rebuild the React application.
 
