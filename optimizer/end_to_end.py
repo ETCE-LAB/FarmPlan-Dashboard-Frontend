@@ -1,18 +1,3 @@
-"""
-end_to_end.py  —  Syntropic Agroforestry Treeline Optimizer
-============================================================
-Matches professor's Excel exactly:
-  - Field: 60m wide × 40m long
-  - 6-8 treelines spaced ~8m apart across the width
-  - Between treelines: 1 trellis column for climbers only
-  - Each treeline fills top→bottom with THIS stacking pattern:
-      1 Emergent/High canopy tree (10-12m spacing between canopy)
-      → immediately below: shrubs at 1-1.5m spacing fill the gaps
-      → medium/low trees placed at 4-5m intervals mixed with shrubs
-  - Result: ~15-25 plants per treeline, ~150-200 total
-  
-Spacing: Rancho Mastatal matrix
-"""
 
 import json
 import logging
