@@ -34,47 +34,17 @@ Install and run:
 
 ```bash
 npm install
-npm run dev:frontend
+npm run dev:backend
 ```
 
-## Flask + MongoDB Backend
-
-The dashboard overview can now load treeline data from MongoDB through a Flask API.
-
-### 1) Start MongoDB
-
-Run MongoDB locally (default URI: `mongodb://localhost:27017`).
-
-### 2) Start Flask API
-
-From `farmplan/backend`:
-
-```bash
-python -m venv .venv
-.venv\Scripts\activate
-pip install -r requirements.txt
-copy .env.example .env
-python app.py
-```
-
-API endpoints:
-
-- `GET /api/health`
-- `POST /api/treeline/import`
-- `GET /api/treeline/overview`
-- `GET /api/treeline/records?limit=50`
-
-On first overview request, Flask auto-imports `20260320_Neorx-treeline-planning.csv` if the collection is empty.
-
-### 3) Start React frontend
+### 1) Start React frontend
 
 From `farmplan`:
 
 ```bash
-npm run dev
+npm run dev:frontend
 ```
 
-Vite proxies Flask calls from `/api/flask/*` to `http://localhost:5000`.
 
 ### One-command startup (frontend + backend)
 
