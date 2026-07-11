@@ -83,7 +83,6 @@ SHRUB    = ["Shrub layer"]
 CLIMBER  = ["Climber/liana"]
 HERB     = ["Tall herb","Tall herb geophyte","Herb geophyte","Herb","Groundcover"]
 
-# ─── Layout: matches professor's Excel ───────────────────────────────────────
 # treeline every 8m, trellis between each pair of treelines
 # 60m / 8m = 7 treelines + 6 trellis columns
 TREELINE_SPACING_M = 8.0   # between treelines
@@ -179,16 +178,7 @@ def ok_in_col(y: float, strata: str, col: List[PlacedPlant]) -> bool:
 
 def ok_cross_col(x: float, y: float, strata: str,
                  all_placed: List[PlacedPlant]) -> bool:
-    """
-    Cross-column spacing: NOT enforced.
-    
-    The Rancho Mastatal spacing rules (12m emergent-emergent, etc.) apply
-    WITHIN a treeline (same column, along-row direction).
-    
-    Between different treelines, the layout itself (10m spacing) enforces
-    the inter-row distance. Trees in adjacent treelines at 10m apart is
-    correct syntropic design — the 12m rule does not block cross-treeline.
-    """
+
     return True  # layout spacing handles cross-treeline distance
 
 # ─── Treeline filler ─────────────────────────────────────────────────────────
