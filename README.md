@@ -34,7 +34,7 @@ Install and run:
 
 ```bash
 npm install
-npm run dev
+npm run dev:frontend
 ```
 
 ## Flask + MongoDB Backend
